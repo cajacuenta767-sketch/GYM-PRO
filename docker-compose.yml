@@ -1,0 +1,18 @@
+# PostgreSQL para producción o pruebas. Uso:
+#   docker compose up -d
+#   DATABASE_URL="postgresql://gympro:gympro@localhost:5432/gympro?schema=public"
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gympro
+      POSTGRES_PASSWORD: gympro
+      POSTGRES_DB: gympro
+    ports:
+      - "5432:5432"
+    volumes:
+      - gympro_pg:/var/lib/postgresql/data
+
+volumes:
+  gympro_pg:

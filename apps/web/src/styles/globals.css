@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────
+   Tokens de color (RGB sin alpha para Tailwind)
+   Tema claro: superficie cálida, tinta casi negra,
+   acento lima. Tema oscuro: carbón azulado.
+   ───────────────────────────────────────────── */
+:root {
+  --bg: 246 245 241;
+  --surface: 255 255 255;
+  --surface-2: 247 246 242;
+  --surface-3: 238 237 231;
+  --line: 230 228 221;
+  --line-strong: 208 205 196;
+  --ink: 27 26 23;
+  --ink-2: 107 105 96;
+  --ink-3: 154 152 144;
+  --side: 20 22 28;
+  --side-2: 29 32 40;
+  --side-ink: 236 237 239;
+  --side-ink-2: 140 146 160;
+  --brand-soft: 241 251 212;
+  --brand-ink: 63 98 18;
+  --success-soft: 220 252 231;
+  --success-ink: 21 128 61;
+  --warning-soft: 254 243 199;
+  --warning-ink: 180 83 9;
+  --danger-soft: 254 226 226;
+  --danger-ink: 185 28 28;
+  --info-soft: 219 234 254;
+  --info-ink: 29 78 216;
+  color-scheme: light;
+}
+
+.dark {
+  --bg: 15 17 21;
+  --surface: 23 26 33;
+  --surface-2: 30 34 43;
+  --surface-3: 38 43 54;
+  --line: 42 47 58;
+  --line-strong: 62 68 82;
+  --ink: 236 237 239;
+  --ink-2: 154 160 174;
+  --ink-3: 107 114 128;
+  --side: 11 13 18;
+  --side-2: 20 23 30;
+  --side-ink: 236 237 239;
+  --side-ink-2: 140 146 160;
+  --brand-soft: 44 58 20;
+  --brand-ink: 195 241 61;
+  --success-soft: 20 55 34;
+  --success-ink: 74 222 128;
+  --warning-soft: 66 44 10;
+  --warning-ink: 251 191 36;
+  --danger-soft: 74 25 25;
+  --danger-ink: 248 113 113;
+  --info-soft: 24 40 82;
+  --info-ink: 96 165 250;
+  color-scheme: dark;
+}
+
+@layer base {
+  * { @apply border-line; }
+  html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  body { @apply bg-bg text-ink font-sans text-[14px] leading-[1.5]; }
+  h1, h2, h3, h4 { @apply font-display tracking-[-0.01em]; }
+  ::selection { background: rgb(195 241 61 / 0.45); }
+  input[type='number']::-webkit-inner-spin-button, input[type='number']::-webkit-outer-spin-button { -webkit-appearance: none; }
+  input[type='date'], input[type='time'], input[type='datetime-local'] { color-scheme: inherit; }
+}
+
+@layer components {
+  .card { @apply bg-surface rounded-2xl border border-line shadow-card; }
+  .kpi-number { @apply font-display font-bold tracking-[-0.02em] tabular-nums; }
+  .focus-ring { @apply outline-none focus-visible:ring-4 focus-visible:ring-brand/30 focus-visible:border-brand; }
+  .scrollbar-thin { scrollbar-width: thin; scrollbar-color: rgb(var(--line-strong)) transparent; }
+  .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: rgb(var(--line-strong)); border-radius: 999px; }
+  .skeleton { @apply relative overflow-hidden bg-surface-3 rounded-lg; }
+  .skeleton::after { content: ''; @apply absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 dark:via-white/10 to-transparent animate-shimmer; }
+  .nav-item { @apply flex items-center gap-3 rounded-xl px-3 py-2 text-[13.5px] font-medium text-side-ink-2 transition-colors hover:bg-white/[0.06] hover:text-side-ink; }
+  .nav-item[data-active='true'] { @apply bg-white/[0.08] text-side-ink; }
+  .nav-item[data-active='true'] .nav-icon { @apply text-brand; }
+}
+
+/* Recharts: tipografía y cuadrícula coherentes */
+.recharts-cartesian-grid line { stroke: rgb(var(--line)); }
+.recharts-text { fill: rgb(var(--ink-3)); font-size: 11.5px; }
+.recharts-default-tooltip { border-radius: 12px !important; border: 1px solid rgb(var(--line)) !important; background: rgb(var(--surface)) !important; box-shadow: 0 12px 32px -8px rgb(20 22 28 / 0.22) !important; }
+.recharts-tooltip-label { color: rgb(var(--ink-2)) !important; font-size: 12px; }
+.recharts-tooltip-item { color: rgb(var(--ink)) !important; font-size: 12.5px; }

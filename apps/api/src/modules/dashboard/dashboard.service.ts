@@ -94,7 +94,7 @@ export class DashboardService {
 
     for (const m of members) {
       const b = m.birthDate!;
-      for (const year of [from.getFullYear(), to.getFullYear()]) {
+      for (const year of new Set([from.getFullYear(), to.getFullYear()])) {
         const d = new Date(year, b.getMonth(), b.getDate());
         if (d >= from && d <= to) items.push({ id: `bday-${m.id}-${year}`, type: 'birthday', title: `Cumpleaños de ${m.firstName}`, date: d, color: '#F59E0B', allDay: true, memberId: m.id });
       }

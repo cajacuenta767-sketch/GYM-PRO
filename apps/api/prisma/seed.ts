@@ -20,6 +20,8 @@ const LAST = ['García', 'Rodríguez', 'Martínez', 'López', 'González', 'Hern
 const STREETS = ['Calle 24 C 38', 'Carrera 45 # 12-30', 'Av. El Poblado 18-22', 'Calle 10 # 43-15', 'Cra 70 # 45-10', 'Transversal 39 # 71-40', 'Calle 33 # 65-20', 'Cra 80 # 32-11', 'Calle 50 # 41-05', 'Cra 43A # 1-50'];
 const INTERESTS = ['Pesas', 'Cardio', 'Yoga', 'CrossFit', 'Pérdida de peso', 'Tonificación', 'Resistencia', 'Flexibilidad', 'Baile', 'Fuerza'];
 
+const activeOrAny = (ms: any[]) => { const a = ms.filter((m) => m.status === 'ACTIVE'); return a.length ? a : ms; };
+
 async function main() {
   console.log('🧹 Limpiando base de datos...');
   await prisma.$transaction([
@@ -168,7 +170,7 @@ async function main() {
     let firstName = '', lastName = '';
     do { firstName = gender === 'FEMENINO' ? pick(FIRST_F) : pick(FIRST_M); lastName = `${pick(LAST)} ${pick(LAST)}`; } while (usedNames.has(firstName + lastName));
     usedNames.add(firstName + lastName);
-    const joinDaysAgo = i < 6 ? between(0, 25) : between(26, 640);
+    const joinDaysAgo = i < 9 ? between(0, 10) : i < 14 ? between(30, 55) : between(56, 640);
     const joinDate = daysAgo(joinDaysAgo, between(7, 20));
     const plan = pick([plans[0], plans[0], plans[0], plans[1], plans[1], plans[2], plans[3]]);
     // Estado según última suscripción (se corrige después)
@@ -235,6 +237,14 @@ async function main() {
     const finalStatus = expired ? (chance(0.7) ? 'EXPIRED' : 'INACTIVE') : chance(0.04) ? 'SUSPENDED' : 'ACTIVE';
     await prisma.member.update({ where: { id: m.id }, data: { status: finalStatus, expiresAt: lastEnd, planId: planCursor.id } });
     m.status = finalStatus; m.expiresAt = lastEnd;
+  }
+  // Cobros recientes del mes en curso: renovaciones anticipadas, clases y eventos
+  const extras: [string, number][] = [['Renovación anticipada · 10 % dto.', 0.9], ['Clases sueltas (5)', 25], ['Inscripción · Carrera 5K', 10], ['Sesión personalizada', 20], ['Congelación de membresía', 5]];
+  for (let i = 0; i < 16; i++) {
+    const m = pick(activeOrAny(members));
+    const [concept, price] = pick(extras);
+    const amount = price < 1 ? Math.round((m.plan?.price ?? 35) * price) : price;
+    await prisma.payment.create({ data: { invoiceNumber: `FAC-${now.getFullYear()}-${String(invoice++).padStart(6, '0')}`, memberId: m.id, concept, amount, method: pick(['CASH', 'CARD', 'TRANSFER', 'STRIPE']), status: chance(0.85) ? 'PAID' : 'PENDING', paidAt: daysAgo(between(0, Math.min(10, now.getDate() - 1)), between(7, 20), between(0, 59)) } });
   }
   // Algunos vencen en los próximos días (para el tablero)
   for (const idx of [2, 5, 9, 14, 21]) {

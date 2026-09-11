@@ -4,6 +4,7 @@ import { paginate } from '../../common/utils';
 import { CreateClassDto, QueryClassesDto, UpdateClassDto } from './dto/class.dto';
 
 const include = {
+  branch: { select: { id: true, name: true } },
   trainer: { select: { id: true, firstName: true, lastName: true, photoUrl: true } },
   schedules: { orderBy: [{ dayOfWeek: 'asc' as const }, { startTime: 'asc' as const }] },
   _count: { select: { members: true, bookings: true } },
@@ -16,6 +17,7 @@ export class ClassesService {
   findAll(query: QueryClassesDto) {
     const where: any = {};
     if (query.trainerId) where.trainerId = query.trainerId;
+    if (query.branchId) where.branchId = query.branchId;
     if (query.isActive !== undefined && query.isActive !== '') where.isActive = query.isActive === 'true';
     return paginate(this.prisma.gymClass, query, {
       where,

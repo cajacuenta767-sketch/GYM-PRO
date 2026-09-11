@@ -12,6 +12,7 @@ export class EventsService {
   findAll(query: QueryEventsDto) {
     const where: any = {};
     if (query.type) where.type = query.type;
+    if (query.branchId) where.branchId = query.branchId;
     if (query.from || query.to) {
       where.startsAt = {};
       if (query.from) where.startsAt.gte = new Date(query.from);

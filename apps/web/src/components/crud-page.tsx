@@ -40,6 +40,7 @@ interface CrudPageProps<T extends { id: string }> {
   above?: React.ReactNode;
   /** Abre el diálogo de creación al montar (p. ej. desde ?nuevo=1). */
   initialCreate?: boolean;
+  bulkBar?: (ids: string[], clear: () => void, refresh: () => void) => React.ReactNode;
 }
 
 /**
@@ -102,6 +103,7 @@ export function CrudPage<T extends { id: string }>(p: CrudPageProps<T>) {
         actions={p.rowActions}
         emptyIcon={p.emptyIcon}
         mobileTitle={p.mobileTitle}
+        bulkBar={p.bulkBar ? (ids, clear) => p.bulkBar!(ids, clear, invalidate) : undefined}
         emptyDescription={`Aún no hay ${p.entityName}s registrados o ninguno coincide con la búsqueda.`}
       />
 

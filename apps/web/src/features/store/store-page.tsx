@@ -23,7 +23,7 @@ const productFields: FieldConfig[] = [
   { name: 'cost', label: 'Costo', type: 'number', step: 0.01 },
   { name: 'stock', label: 'Stock', type: 'number' },
   { name: 'minStock', label: 'Stock mínimo', type: 'number' },
-  { name: 'imageUrl', label: 'URL de imagen', type: 'url', colSpan: 2 },
+  { name: 'imageUrl', label: 'Imagen', type: 'image' },
   { name: 'description', label: 'Descripción', type: 'textarea' },
   { name: 'isActive', label: 'Activo', type: 'switch' },
 ];

@@ -13,7 +13,7 @@ const fields: FieldConfig[] = [
   { name: 'name', label: 'Nombre del grupo', required: true, placeholder: 'Zumba' },
   { name: 'color', label: 'Color', type: 'color' },
   { name: 'description', label: 'Descripción', type: 'textarea' },
-  { name: 'imageUrl', label: 'URL de imagen', type: 'url', colSpan: 2 },
+  { name: 'imageUrl', label: 'Imagen', type: 'image' },
   { name: 'memberIds', label: 'Miembros del grupo', type: 'multiselect', source: 'members' },
 ];
 

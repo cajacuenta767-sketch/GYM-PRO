@@ -1,12 +1,13 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { Roles } from '../../common/decorators';
+import { ModuleKey, Roles } from '../../common/decorators';
 import { PaginationDto } from '../../common/dto';
 import { CreateRoleDto, QueryAccessLogsDto, UpdateRoleDto } from './dto/access.dto';
 import { AccessService } from './access.service';
 
 @ApiTags('Control de acceso')
 @ApiBearerAuth()
+@ModuleKey('access')
 @Controller('access')
 export class AccessController {
   constructor(private readonly service: AccessService) {}

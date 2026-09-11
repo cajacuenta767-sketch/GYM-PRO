@@ -1,15 +1,17 @@
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
-import { CheckCircle2, Clock, CreditCard, Receipt, TrendingUp, Wallet } from 'lucide-react';
+import { CheckCircle2, Clock, Copy, CreditCard, FileText, Link2, Receipt, TrendingUp, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
-import { get, patch } from '@/lib/api';
+import { download, get, patch, post } from '@/lib/api';
+import { AutoForm } from '@/components/auto-form';
 import { fmtDate, fmtMoney } from '@/lib/format';
 import { PAYMENT_METHOD, PAYMENT_STATUS, toOptions } from '@/lib/labels';
 import type { Payment } from '@/types';
 import { CrudPage } from '@/components/crud-page';
 import type { Column } from '@/components/data-table';
 import type { FieldConfig } from '@/components/auto-form';
-import { Avatar, Badge, Card, CardBody, CardHeader, Input, Select, StatCard, StatusBadge } from '@/components/ui';
+import { Avatar, Badge, Button, Card, CardBody, CardHeader, Dialog, Input, Select, StatCard, StatusBadge } from '@/components/ui';
 import { Donut, Legend } from '@/components/charts';
 import { CHART_COLORS } from '@/lib/labels';
 
@@ -39,6 +41,9 @@ export default function PaymentsPage() {
   const qc = useQueryClient();
   const [params] = useSearchParams();
   const { data: s } = useQuery({ queryKey: ['payments', 'stats'], queryFn: () => get<any>('/payments/stats') });
+  const [online, setOnline] = useState(false);
+  const [link, setLink] = useState<string | null>(null);
+  const checkout = useMutation({ mutationFn: (v: any) => post<{ url: string; provider: string }>('/payments/checkout', v), onSuccess: (r) => { setLink(r.url); qc.invalidateQueries({ queryKey: ['/payments'] }); }, onError: (e: Error) => toast.error(e.message) });
   const markPaid = useMutation({ mutationFn: (p: Payment) => patch(`/payments/${p.id}`, { status: 'PAID', paidAt: new Date().toISOString() }), onSuccess: () => { toast.success('Pago marcado como pagado'); qc.invalidateQueries({ queryKey: ['/payments'] }); qc.invalidateQueries({ queryKey: ['payments', 'stats'] }); } });
   const byMethod = (s?.byMethod ?? []).map((m: any, i: number) => ({ name: PAYMENT_METHOD[m.method] ?? m.method, value: Math.round(m.total), color: CHART_COLORS[i] }));
 
@@ -55,7 +60,20 @@ export default function PaymentsPage() {
       filters={params.get('status') ? { status: params.get('status') } : {}}
       emptyIcon={<CreditCard />}
       searchPlaceholder="Buscar por factura, miembro, concepto o referencia…"
-      rowActions={[{ label: 'Marcar como pagado', icon: <CheckCircle2 />, onClick: (p) => markPaid.mutate(p), hidden: (p) => p.status === 'PAID' }]}
+      rowActions={[
+        { label: 'Factura PDF', icon: <FileText />, onClick: (p) => download(`/payments/${p.id}/invoice.pdf`, `${p.invoiceNumber}.pdf`, true) },
+        { label: 'Marcar como pagado', icon: <CheckCircle2 />, onClick: (p) => markPaid.mutate(p), hidden: (p) => p.status === 'PAID' },
+      ]}
+      headerActions={<Button variant="outline" onClick={() => { setLink(null); setOnline(true); }}><Link2 className="h-4 w-4" />Cobro en línea</Button>}
+      headerExtra={
+        <Dialog open={online} onOpenChange={setOnline} title="Generar enlace de pago" description={`Pasarela activa: ${s?.onlineProvider === 'STRIPE' ? 'Stripe' : 'demostración (sin clave de Stripe)'}. El enlace se envía al miembro para que pague desde su teléfono.`} size="sm" footer={<><Button variant="ghost" onClick={() => setOnline(false)}>Cerrar</Button>{!link && <Button type="submit" form="checkout-form" loading={checkout.isPending}>Generar enlace</Button>}</>}>
+          {link ? (
+            <div className="space-y-3"><p className="text-[13px] text-ink-2">Enlace listo. Cópialo y compártelo por WhatsApp o correo.</p><div className="flex gap-2"><Input readOnly value={link} className="font-mono text-[12px]" /><Button variant="secondary" onClick={() => { navigator.clipboard.writeText(link); toast.success('Enlace copiado'); }}><Copy className="h-4 w-4" /></Button></div></div>
+          ) : (
+            <AutoForm id="checkout-form" fields={[{ name: 'memberId', label: 'Miembro', type: 'select', source: 'members', required: true }, { name: 'planId', label: 'Plan a pagar', type: 'select', source: 'plans', required: true }]} onSubmit={(v) => checkout.mutate(v)} columns={1} />
+          )}
+        </Dialog>
+      }
       above={
         <div className="mb-6 grid gap-4 lg:grid-cols-[repeat(4,1fr)_1.3fr]">
           <StatCard label="Ingresos del mes" value={fmtMoney(s?.monthTotal)} hint={`vs ${fmtMoney(s?.prevMonthTotal)} anterior`} trend={s?.growth ?? undefined} icon={<Wallet />} tone="success" />

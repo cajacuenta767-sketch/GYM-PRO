@@ -1,20 +1,39 @@
-import { Body, Controller, Get, HttpCode, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CurrentUser, Public } from '../../common/decorators';
+import { Throttle } from '@nestjs/throttler';
+import { CurrentUser, PortalAccess, Public } from '../../common/decorators';
 import { AuthService } from './auth.service';
-import { ChangePasswordDto, LoginDto } from './dto/login.dto';
+import { ChangePasswordDto, LoginDto, LogoutDto, RefreshDto } from './dto/login.dto';
 
 @ApiTags('Autenticación')
+@PortalAccess()
 @Controller('auth')
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('login')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Iniciar sesión y obtener token JWT' })
-  login(@Body() dto: LoginDto) {
-    return this.auth.login(dto);
+  @ApiOperation({ summary: 'Iniciar sesión (máx. 5 intentos por minuto)' })
+  login(@Body() dto: LoginDto, @Headers('user-agent') ua?: string) {
+    return this.auth.login(dto, ua);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @Post('refresh')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Renovar el token de acceso con un refresh token' })
+  refresh(@Body() dto: RefreshDto, @Headers('user-agent') ua?: string) {
+    return this.auth.refresh(dto.refreshToken, ua);
+  }
+
+  @Post('logout')
+  @HttpCode(200)
+  @ApiBearerAuth()
+  logout(@CurrentUser('id') userId: string, @Body() dto: LogoutDto) {
+    return this.auth.logout(userId, dto.refreshToken);
   }
 
   @Get('me')

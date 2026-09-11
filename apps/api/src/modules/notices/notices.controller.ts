@@ -1,10 +1,12 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { ModuleKey } from '../../common/decorators';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CreateNoticeDto, QueryNoticesDto, UpdateNoticeDto } from './dto/notice.dto';
 import { NoticesService } from './notices.service';
 
 @ApiTags('Avisos')
 @ApiBearerAuth()
+@ModuleKey('notices')
 @Controller('notices')
 export class NoticesController {
   constructor(private readonly service: NoticesService) {}

@@ -16,8 +16,10 @@ const fields: FieldConfig[] = [
   { name: 'startsAt', label: 'Inicio', type: 'datetime', required: true },
   { name: 'endsAt', label: 'Fin', type: 'datetime' },
   { name: 'location', label: 'Lugar', placeholder: 'Sala principal' },
+  { name: 'branchId', label: 'Sede', type: 'select', source: 'branches' },
   { name: 'capacity', label: 'Capacidad', type: 'number' },
   { name: 'fee', label: 'Costo de inscripción', type: 'number', step: 0.01 },
+  { name: 'imageUrl', label: 'Imagen', type: 'image' },
   { name: 'isPublic', label: 'Visible para miembros', type: 'switch' },
   { name: 'description', label: 'Descripción', type: 'textarea' },
 ];

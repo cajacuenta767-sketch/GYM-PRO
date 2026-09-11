@@ -6,6 +6,7 @@ import { fmtMoney, fmtNumber } from '@/lib/format';
 import { CHART_COLORS, MEMBER_STATUS } from '@/lib/labels';
 import { Button, Card, CardBody, CardHeader, PageHeader, ProgressBar, Select, Skeleton, StatCard, Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui';
 import { AreaSeries, BarSeries, Donut, Legend, LineSeries } from '@/components/charts';
+import { exportXlsx } from '@/lib/export';
 
 export default function ReportsPage() {
   const [months, setMonths] = useState(12);
@@ -30,7 +31,8 @@ export default function ReportsPage() {
       <PageHeader eyebrow="Operación" title="Reportes" description="Indicadores de negocio: ingresos, crecimiento de miembros, asistencia, clases y tienda." actions={
         <div className="flex items-center gap-2">
           <Select value={months} onChange={(e) => setMonths(Number(e.target.value))} className="w-36"><option value={6}>Últimos 6 meses</option><option value={12}>Últimos 12 meses</option><option value={24}>Últimos 24 meses</option></Select>
-          <Button variant="outline" onClick={() => exportCsv(revenue.data?.series, 'ingresos')}><Download className="h-4 w-4" />Exportar CSV</Button>
+          <Button variant="outline" onClick={() => exportCsv(revenue.data?.series, 'ingresos')}><Download className="h-4 w-4" />CSV</Button>
+          <Button onClick={() => exportXlsx('reporte-gympro', [{ name: 'Ingresos', rows: revenue.data?.series ?? [] }, { name: 'Miembros', rows: members.data?.growth ?? [] }, { name: 'Por plan', rows: members.data?.byPlan ?? [] }, { name: 'Asistencia', rows: attendance.data?.daily ?? [] }, { name: 'Clases', rows: classes.data ?? [] }, { name: 'Tienda', rows: store.data ?? [] }])}><Download className="h-4 w-4" />Exportar Excel</Button>
         </div>
       } />
 

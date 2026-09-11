@@ -28,6 +28,8 @@ export class CreateMemberDto {
   @ApiPropertyOptional() @IsOptional() @IsString() notes?: string;
   @ApiPropertyOptional({ type: [String] }) @IsOptional() @IsArray() groupIds?: string[];
   @ApiPropertyOptional({ type: [String] }) @IsOptional() @IsArray() classIds?: string[];
+  @ApiPropertyOptional() @IsOptional() @IsString() branchId?: string;
+  @ApiPropertyOptional({ description: 'Crear cuenta de acceso al portal con esta contraseña' }) @IsOptional() @IsString() portalPassword?: string;
 }
 
 export class UpdateMemberDto extends PartialType(CreateMemberDto) {}
@@ -37,6 +39,15 @@ export class QueryMembersDto extends PaginationDto {
   @ApiPropertyOptional() @IsOptional() @IsString() planId?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() trainerId?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() groupId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() branchId?: string;
+}
+
+export class BulkMembersDto {
+  @ApiProperty({ type: [String] }) @IsArray() ids: string[];
+  @ApiPropertyOptional({ enum: MEMBER_STATUS }) @IsOptional() @IsIn(MEMBER_STATUS as any) status?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() trainerId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() groupId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() branchId?: string;
 }
 
 export class CreateMeasurementDto {

@@ -35,19 +35,20 @@ export class AttendanceService {
     const member = await this.resolveMember(dto);
     const now = new Date();
 
-    const allowed = member.status === 'ACTIVE' && (!member.expiresAt || member.expiresAt >= startOfDay(now));
+    const frozen = !!member.frozenUntil && member.frozenUntil > now;
+    const allowed = member.status === 'ACTIVE' && !frozen && (!member.expiresAt || member.expiresAt >= startOfDay(now));
     await this.prisma.accessLog.create({
       data: {
         memberId: member.id,
         method: dto.method ?? 'QR',
         allowed,
-        reason: allowed ? null : member.status !== 'ACTIVE' ? `Miembro ${member.status}` : 'Membresía vencida',
+        reason: allowed ? null : frozen ? 'Membresía congelada' : member.status !== 'ACTIVE' ? `Miembro ${member.status}` : 'Membresía vencida',
         gate: 'Entrada principal',
       },
     });
     if (!allowed) {
       throw new BadRequestException(
-        member.status !== 'ACTIVE' ? `Acceso denegado: el miembro está ${member.status.toLowerCase()}` : 'Acceso denegado: la membresía está vencida',
+        frozen ? `Acceso denegado: la membresía está congelada hasta el ${member.frozenUntil!.toLocaleDateString('es-CO')}` : member.status !== 'ACTIVE' ? `Acceso denegado: el miembro está ${member.status.toLowerCase()}` : 'Acceso denegado: la membresía está vencida',
       );
     }
 

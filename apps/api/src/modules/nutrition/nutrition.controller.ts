@@ -1,10 +1,12 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { ModuleKey } from '../../common/decorators';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CreateNutritionDto, QueryNutritionDto, UpdateNutritionDto } from './dto/nutrition.dto';
 import { NutritionService } from './nutrition.service';
 
 @ApiTags('Nutrición')
 @ApiBearerAuth()
+@ModuleKey('nutrition')
 @Controller('nutrition')
 export class NutritionController {
   constructor(private readonly service: NutritionService) {}

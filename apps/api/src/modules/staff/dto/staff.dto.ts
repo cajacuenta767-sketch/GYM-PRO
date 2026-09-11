@@ -16,12 +16,14 @@ export class CreateStaffDto {
   @ApiPropertyOptional() @IsOptional() @IsDateString() hireDate?: string;
   @ApiPropertyOptional() @IsOptional() @IsNumber() salary?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() bio?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() branchId?: string;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() isActive?: boolean;
 }
 
 export class UpdateStaffDto extends PartialType(CreateStaffDto) {}
 
 export class QueryStaffDto extends PaginationDto {
+  @ApiPropertyOptional() @IsOptional() @IsString() branchId?: string;
   @ApiPropertyOptional({ enum: STAFF_ROLES }) @IsOptional() @IsString() role?: string;
   @ApiPropertyOptional() @IsOptional() isActive?: string;
 }

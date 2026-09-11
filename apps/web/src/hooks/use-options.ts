@@ -17,6 +17,8 @@ export const optionQueries = {
   activityCategories: () => get<any[]>('/activities/categories').then((r) => r.map((c) => ({ value: c.name, label: c.name }))),
   roles: () => get<any[]>('/access/roles').then((r) => r.map((x) => ({ value: x.id, label: x.name }))),
   contacts: () => get<any[]>('/messages/contacts').then((r) => r.map((u) => ({ value: u.id, label: u.name, hint: u.email }))),
+  branches: () => get<any[]>('/branches').then((r) => r.filter((b) => b.isActive).map((b) => ({ value: b.id, label: b.name, color: b.color }))),
+  routineTemplates: () => list<any>('/routines', { limit: 100, isTemplate: 'true' }).then((r) => r.data.map((x) => ({ value: x.id, label: x.name, hint: x.level }))),
 };
 
 export type OptionSource = keyof typeof optionQueries;

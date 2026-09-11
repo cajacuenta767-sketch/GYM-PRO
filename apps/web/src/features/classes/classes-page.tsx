@@ -12,6 +12,7 @@ const fields: FieldConfig[] = [
   { name: 'name', label: 'Nombre de la clase', required: true, placeholder: 'Clase de Yoga' },
   { name: 'trainerId', label: 'Instructor', type: 'select', source: 'trainers' },
   { name: 'location', label: 'Ubicación', placeholder: 'Sala principal' },
+  { name: 'branchId', label: 'Sede', type: 'select', source: 'branches' },
   { name: 'color', label: 'Color', type: 'color' },
   { name: 'capacity', label: 'Capacidad', type: 'number', min: 1, required: true },
   { name: 'bookingFee', label: 'Tarifa de reserva', type: 'number', step: 0.01 },

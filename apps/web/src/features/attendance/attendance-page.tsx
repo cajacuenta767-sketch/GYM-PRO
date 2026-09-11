@@ -13,6 +13,8 @@ import { Avatar, Badge, Button, Card, CardBody, CardHeader, Dialog, Input, PageH
 import { DataTable, type Column } from '@/components/data-table';
 import { AutoForm, type FieldConfig } from '@/components/auto-form';
 import { BarSeries } from '@/components/charts';
+import { QrScannerDialog } from '@/components/qr-scanner';
+import { Camera } from 'lucide-react';
 
 const manualFields: FieldConfig[] = [
   { name: 'memberId', label: 'Miembro', type: 'select', source: 'members', required: true, colSpan: 2 },
@@ -27,6 +29,7 @@ export default function AttendancePage() {
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [manual, setManual] = useState(false);
+  const [scanner, setScanner] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { data: today } = useQuery({ queryKey: ['attendance', 'today'], queryFn: () => get<any>('/attendance/today'), refetchInterval: 30_000 });
@@ -74,6 +77,7 @@ export default function AttendancePage() {
               </div>
               <Button type="submit" size="lg" className="h-12" loading={checkIn.isPending}><LogIn className="h-4 w-4" />Registrar</Button>
             </form>
+            <button type="button" onClick={() => setScanner(true)} className="mt-3 inline-flex items-center gap-2 rounded-xl border border-white/15 px-3.5 py-2 text-[13px] font-semibold text-side-ink hover:bg-white/[0.06]"><Camera className="h-4 w-4 text-brand" />Escanear con la cámara</button>
           </div>
           <CardBody className="pt-5">
             {!result && !error && <div className="flex flex-col items-center py-8 text-center text-ink-3"><DoorOpen className="mb-2 h-8 w-8" /><p className="text-[13px]">Esperando lectura…</p></div>}
@@ -118,6 +122,7 @@ export default function AttendancePage() {
         <DataTable controller={ctrl} columns={columns} searchPlaceholder="Buscar miembro…" actions={[{ label: 'Registrar salida', icon: <LogOut />, onClick: (a) => checkOut.mutate(a.id), hidden: (a) => !!a.checkOut }]} emptyIcon={<ClipboardCheck />} emptyTitle="Sin asistencias" emptyDescription="No hay registros para el rango seleccionado." />
       </div>
 
+      <QrScannerDialog open={scanner} onOpenChange={setScanner} onDetect={(v) => checkIn.mutate({ qrToken: v, method: 'QR' })} />
       <Dialog open={manual} onOpenChange={setManual} title="Registro manual de asistencia" footer={<><Button variant="ghost" onClick={() => setManual(false)}>Cancelar</Button><Button type="submit" form="manual-form" loading={createManual.isPending}>Guardar</Button></>}>
         <AutoForm id="manual-form" fields={manualFields} defaultValues={{ checkIn: new Date().toISOString() }} onSubmit={(v) => createManual.mutate(v)} />
       </Dialog>

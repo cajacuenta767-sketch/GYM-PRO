@@ -17,6 +17,7 @@ export class CreateClassDto {
   @ApiPropertyOptional() @IsOptional() @IsInt() @Min(1) capacity?: number;
   @ApiPropertyOptional() @IsOptional() @IsNumber() @Min(0) bookingFee?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() color?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() branchId?: string;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() isActive?: boolean;
   @ApiPropertyOptional({ type: [ScheduleDto] })
   @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => ScheduleDto)
@@ -26,6 +27,7 @@ export class CreateClassDto {
 export class UpdateClassDto extends PartialType(CreateClassDto) {}
 
 export class QueryClassesDto extends PaginationDto {
+  @ApiPropertyOptional() @IsOptional() @IsString() branchId?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() trainerId?: string;
   @ApiPropertyOptional() @IsOptional() isActive?: string;
 }

@@ -12,7 +12,7 @@ const fields: FieldConfig[] = [
   { name: 'trainerId', label: 'Entrenador', type: 'select', source: 'trainers' },
   { name: 'durationMin', label: 'Duración (min)', type: 'number' },
   { name: 'calories', label: 'Calorías aprox.', type: 'number' },
-  { name: 'imageUrl', label: 'URL de imagen', type: 'url' },
+  { name: 'imageUrl', label: 'Imagen', type: 'image' },
   { name: 'description', label: 'Descripción', type: 'textarea' },
 ];
 

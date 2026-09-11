@@ -1,10 +1,12 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { ModuleKey } from '../../common/decorators';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CreateNewsletterDto, QueryNewslettersDto, UpdateNewsletterDto } from './dto/newsletter.dto';
 import { NewslettersService } from './newsletters.service';
 
 @ApiTags('Boletín informativo')
 @ApiBearerAuth()
+@ModuleKey('newsletters')
 @Controller('newsletters')
 export class NewslettersController {
   constructor(private readonly service: NewslettersService) {}

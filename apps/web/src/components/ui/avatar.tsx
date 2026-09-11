@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { cn, hashHue, initials } from '@/lib/utils';
+import { assetUrl } from '@/lib/api';
 
 type Size = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 const sizes: Record<Size, string> = { xs: 'h-6 w-6 text-[10px]', sm: 'h-8 w-8 text-[11px]', md: 'h-9 w-9 text-[12px]', lg: 'h-11 w-11 text-[13px]', xl: 'h-16 w-16 text-[18px]', '2xl': 'h-24 w-24 text-[26px]' };
@@ -8,14 +9,15 @@ export function Avatar({ src, name, size = 'md', className, square }: { src?: st
   const [failed, setFailed] = useState(false);
   const label = name ?? '';
   const hue = hashHue(label || 'x');
-  const showImg = src && !failed;
+  const resolved = assetUrl(src);
+  const showImg = resolved && !failed;
   return (
     <span
       className={cn('relative inline-flex shrink-0 items-center justify-center overflow-hidden font-display font-semibold text-white select-none', square ? 'rounded-xl' : 'rounded-full', sizes[size], className)}
       style={showImg ? undefined : { background: `oklch(62% 0.13 ${hue})` }}
       aria-label={label}
     >
-      {showImg ? <img src={src!} alt={label} className="h-full w-full object-cover" onError={() => setFailed(true)} loading="lazy" /> : initials(label)}
+      {showImg ? <img src={resolved!} alt={label} className="h-full w-full object-cover" onError={() => setFailed(true)} loading="lazy" /> : initials(label)}
     </span>
   );
 }

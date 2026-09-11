@@ -9,8 +9,9 @@ export const memberFields: FieldConfig[] = [
   { name: 'birthDate', label: 'Fecha de nacimiento', type: 'date' },
   { name: 'gender', label: 'Género', type: 'select', options: toOptions(GENDER) },
   { name: 'address', label: 'Dirección', colSpan: 2, placeholder: 'Calle 24 C 38' },
-  { name: 'photoUrl', label: 'URL de la foto', type: 'url', colSpan: 2, placeholder: 'https://…' },
+  { name: 'photoUrl', label: 'Foto', type: 'image' },
   { name: 'planId', label: 'Tipo de membresía', type: 'select', source: 'plans', section: 'Afiliación' },
+  { name: 'branchId', label: 'Sede', type: 'select', source: 'branches' },
   { name: 'status', label: 'Estado', type: 'select', options: toOptions(MEMBER_STATUS), required: true },
   { name: 'joinDate', label: 'Fecha de ingreso', type: 'date' },
   { name: 'expiresAt', label: 'Fecha de caducidad', type: 'date' },
@@ -21,6 +22,7 @@ export const memberFields: FieldConfig[] = [
   { name: 'username', label: 'Nombre de usuario', section: 'Otros datos' },
   { name: 'emergencyContact', label: 'Contacto de emergencia', placeholder: 'Nombre · teléfono' },
   { name: 'notes', label: 'Notas internas', type: 'textarea' },
+  { name: 'portalPassword', label: 'Contraseña del portal (opcional)', type: 'password', hint: 'Crea o restablece el acceso del miembro al portal. Requiere correo.' },
 ];
 
 export const memberToForm = (m: any) => ({

@@ -3,8 +3,9 @@ import { Controller, useForm, type FieldValues } from 'react-hook-form';
 import { cn } from '@/lib/utils';
 import { FieldError, Hint, Input, Label, Select, Switch, Textarea } from '@/components/ui';
 import { useOptions, type Option, type OptionSource } from '@/hooks/use-options';
+import { ImageUpload } from './image-upload';
 
-export type FieldType = 'text' | 'email' | 'tel' | 'number' | 'password' | 'textarea' | 'select' | 'multiselect' | 'date' | 'datetime' | 'time' | 'switch' | 'color' | 'url' | 'custom';
+export type FieldType = 'text' | 'email' | 'tel' | 'number' | 'password' | 'textarea' | 'select' | 'multiselect' | 'date' | 'datetime' | 'time' | 'switch' | 'color' | 'url' | 'image' | 'custom';
 
 export interface FieldConfig {
   name: string;
@@ -60,7 +61,7 @@ function FieldRenderer({ field: f, form, columns }: { field: FieldConfig; form: 
   const { data: remote } = useOptions(f.source);
   const options = f.options ?? remote ?? [];
   const error = form.formState.errors[f.name]?.message as string | undefined;
-  const span = f.colSpan === 2 || f.type === 'textarea' || f.type === 'multiselect' || f.type === 'custom' ? 'sm:col-span-2' : '';
+  const span = f.colSpan === 2 || f.type === 'textarea' || f.type === 'multiselect' || f.type === 'custom' || f.type === 'image' ? 'sm:col-span-2' : '';
   const rules = { required: f.required ? 'Este campo es obligatorio' : false };
 
   const control = (() => {
@@ -80,6 +81,8 @@ function FieldRenderer({ field: f, form, columns }: { field: FieldConfig; form: 
             <ChipMultiSelect options={options} value={field.value ?? []} onChange={field.onChange} />
           )} />
         );
+      case 'image':
+        return <Controller name={f.name} control={form.control} render={({ field }) => <ImageUpload value={field.value} onChange={field.onChange} />} />;
       case 'custom':
         return <Controller name={f.name} control={form.control} render={({ field }) => <>{f.render?.(field.value, field.onChange)}</>} />;
       case 'switch':

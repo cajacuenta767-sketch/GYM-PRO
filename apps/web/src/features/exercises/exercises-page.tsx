@@ -16,6 +16,7 @@ const exerciseFields: FieldConfig[] = [
   { name: 'reps', label: 'Repeticiones', type: 'number' },
   { name: 'restSeconds', label: 'Descanso (seg)', type: 'number' },
   { name: 'videoUrl', label: 'URL de video', type: 'url' },
+  { name: 'imageUrl', label: 'Imagen', type: 'image' },
   { name: 'description', label: 'Técnica / descripción', type: 'textarea' },
 ];
 const categoryFields: FieldConfig[] = [

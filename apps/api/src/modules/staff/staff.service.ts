@@ -3,7 +3,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { paginate } from '../../common/utils';
 import { CreateStaffDto, QueryStaffDto, UpdateStaffDto } from './dto/staff.dto';
 
-const include = { _count: { select: { members: true, classes: true, activities: true } } };
+const include = { branch: { select: { id: true, name: true } }, _count: { select: { members: true, classes: true, activities: true } } };
 
 @Injectable()
 export class StaffService {
@@ -12,6 +12,7 @@ export class StaffService {
   findAll(query: QueryStaffDto) {
     const where: any = {};
     if (query.role) where.role = query.role;
+    if (query.branchId) where.branchId = query.branchId;
     if (query.isActive !== undefined && query.isActive !== '') where.isActive = query.isActive === 'true';
     return paginate(this.prisma.staff, query, {
       where,

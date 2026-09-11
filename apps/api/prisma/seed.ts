@@ -25,7 +25,8 @@ const activeOrAny = (ms: any[]) => { const a = ms.filter((m) => m.status === 'AC
 async function main() {
   console.log('🧹 Limpiando base de datos...');
   await prisma.$transaction([
-    prisma.auditLog.deleteMany(), prisma.accessLog.deleteMany(), prisma.message.deleteMany(),
+    prisma.auditLog.deleteMany(), prisma.accessLog.deleteMany(), prisma.message.deleteMany(), prisma.notification.deleteMany(), prisma.notificationLog.deleteMany(), prisma.refreshToken.deleteMany(),
+    prisma.routineExercise.deleteMany(), prisma.routineDay.deleteMany(), prisma.routine.deleteMany(), prisma.membershipFreeze.deleteMany(),
     prisma.saleItem.deleteMany(), prisma.sale.deleteMany(), prisma.product.deleteMany(), prisma.productCategory.deleteMany(),
     prisma.eventRsvp.deleteMany(), prisma.event.deleteMany(), prisma.attendance.deleteMany(),
     prisma.payment.deleteMany(), prisma.subscription.deleteMany(), prisma.booking.deleteMany(),
@@ -33,7 +34,7 @@ async function main() {
     prisma.classSchedule.deleteMany(), prisma.gymClass.deleteMany(), prisma.groupMember.deleteMany(), prisma.group.deleteMany(),
     prisma.exercise.deleteMany(), prisma.exerciseCategory.deleteMany(), prisma.membershipPlanActivity.deleteMany(),
     prisma.activity.deleteMany(), prisma.member.deleteMany(), prisma.membershipPlan.deleteMany(), prisma.staff.deleteMany(),
-    prisma.newsletter.deleteMany(), prisma.notice.deleteMany(), prisma.setting.deleteMany(), prisma.user.deleteMany(), prisma.role.deleteMany(),
+    prisma.newsletter.deleteMany(), prisma.notice.deleteMany(), prisma.setting.deleteMany(), prisma.user.deleteMany(), prisma.role.deleteMany(), prisma.branch.deleteMany(),
   ]);
 
   // ── Configuración ──
@@ -48,6 +49,7 @@ async function main() {
     notifyExpiring: ['true', 'notifications'], expiringDays: ['7', 'notifications'], notifyBirthday: ['true', 'notifications'],
     notifyNewMember: ['true', 'notifications'], smtpHost: ['', 'notifications'], smtpFrom: ['no-reply@gympro.app', 'notifications'],
     primaryColor: ['#B8E63C', 'appearance'], theme: ['system', 'appearance'], compactSidebar: ['false', 'appearance'],
+    setupCompleted: ['true', 'general'], whatsappNumber: ['573001234567', 'notifications'], smtpPort: ['587', 'notifications'], smtpUser: ['', 'notifications'], smtpPass: ['', 'notifications'],
     qrCheckIn: ['true', 'access'], autoCheckOutMinutes: ['180', 'access'], allowExpiredGrace: ['true', 'access'], graceDays: ['3', 'access'],
   };
   await prisma.setting.createMany({ data: Object.entries(settings).map(([key, [value, group]]) => ({ key, value, group })) });
@@ -67,6 +69,12 @@ async function main() {
   const uTrainer = await prisma.user.create({ data: { email: 'nestor@gympro.app', password: pw('entrenador123'), name: 'Néstor Camelo', role: 'STAFF', roleId: roleTrainer.id, avatarUrl: 'https://i.pravatar.cc/200?img=59' } });
   const uAccountant = await prisma.user.create({ data: { email: 'contador@gympro.app', password: pw('contador123'), name: 'Mario Gómez', role: 'ACCOUNTANT', roleId: roleAccountant.id, avatarUrl: 'https://i.pravatar.cc/200?img=68' } });
 
+  // ── Sedes ──
+  console.log('🏢 Sedes...');
+  const sedePrincipal = await prisma.branch.create({ data: { name: 'Sede Principal', address: 'Calle 10 # 43-15, El Poblado', phone: '+57 300 123 4567', email: 'poblado@gympro.app', color: '#22A6B3' } });
+  const sedeNorte = await prisma.branch.create({ data: { name: 'Sede Norte', address: 'Cra 52 # 71-30, Bello', phone: '+57 300 765 4321', email: 'norte@gympro.app', color: '#7C5CFC' } });
+  const branchFor = (i: number) => (i % 4 === 3 ? sedeNorte.id : sedePrincipal.id);
+
   // ── Equipo ──
   console.log('👥 Equipo...');
   const staffData = [
@@ -83,7 +91,7 @@ async function main() {
   const staff = [] as any[];
   for (const s of staffData) {
     const { photo, ...rest } = s;
-    staff.push(await prisma.staff.create({ data: { ...rest, email: `${s.firstName.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')}.${s.lastName.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')}@gympro.app`, phone: `+57 31${between(0, 9)} ${between(100, 999)} ${between(1000, 9999)}`, photoUrl: `https://i.pravatar.cc/200?img=${photo}`, hireDate: daysAgo(between(120, 1400)) } }));
+    staff.push(await prisma.staff.create({ data: { ...rest, branchId: branchFor(staff.length), email: `${s.firstName.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')}.${s.lastName.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')}@gympro.app`, phone: `+57 31${between(0, 9)} ${between(100, 999)} ${between(1000, 9999)}`, photoUrl: `https://i.pravatar.cc/200?img=${photo}`, hireDate: daysAgo(between(120, 1400)) } }));
   }
   const trainers = staff.filter((s) => s.role === 'TRAINER');
   const nutritionist = staff.find((s) => s.role === 'NUTRITIONIST');
@@ -156,7 +164,7 @@ async function main() {
   const classes: any[] = [];
   for (const c of classesData) {
     classes.push(await prisma.gymClass.create({
-      data: { name: c.name, trainerId: trainers[c.trainer].id, location: c.location, capacity: c.capacity, bookingFee: c.fee, color: c.color, description: `Clase grupal de ${c.name.replace('Clase de ', '').replace(' Class', '').toLowerCase()} dirigida por instructor certificado.`, schedules: { create: c.schedules.map(([dayOfWeek, startTime, endTime]) => ({ dayOfWeek: dayOfWeek as number, startTime: startTime as string, endTime: endTime as string })) } },
+      data: { name: c.name, branchId: classes.length % 3 === 2 ? sedeNorte.id : sedePrincipal.id, trainerId: trainers[c.trainer].id, location: c.location, capacity: c.capacity, bookingFee: c.fee, color: c.color, description: `Clase grupal de ${c.name.replace('Clase de ', '').replace(' Class', '').toLowerCase()} dirigida por instructor certificado.`, schedules: { create: c.schedules.map(([dayOfWeek, startTime, endTime]) => ({ dayOfWeek: dayOfWeek as number, startTime: startTime as string, endTime: endTime as string })) } },
       include: { schedules: true },
     }));
   }
@@ -179,7 +187,7 @@ async function main() {
     const birthDate = new Date(year, between(0, 11), between(1, 28));
     const member = await prisma.member.create({
       data: {
-        code: `M${30824 + i}`, firstName, lastName, gender, birthDate,
+        code: `M${30824 + i}`, firstName, lastName, gender, birthDate, branchId: branchFor(i),
         email: `${firstName.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')}.${lastName.split(' ')[0].toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')}${i}@gmail.com`,
         phone: `+57 3${between(0, 2)}${between(0, 9)} ${between(100, 999)} ${between(1000, 9999)}`,
         address: pick(STREETS), photoUrl: `https://i.pravatar.cc/200?img=${photoId}`,
@@ -405,6 +413,72 @@ async function main() {
     await prisma.message.create({ data: { senderId: (from as any).id, recipientId: (to as any).id, subject, body, createdAt, readAt: mi++ < 6 && chance(0.6) ? new Date(createdAt.getTime() + 3600000) : null } });
   }
 
+  // ── Cuentas del portal para miembros ──
+  console.log('📱 Cuentas del portal...');
+  const portalMembers = [members[7], activeMembers[3], activeMembers[10], activeMembers[15]];
+  const portalUsers: any[] = [];
+  for (const [i, m] of portalMembers.entries()) {
+    const email = i === 0 ? 'paola@gympro.app' : `${m.firstName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}.${m.lastName.split(' ')[0].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}@gympro.app`;
+    const u = await prisma.user.create({ data: { email, password: pw('miembro123'), name: `${m.firstName} ${m.lastName}`, role: 'MEMBER', avatarUrl: m.photoUrl } });
+    await prisma.member.update({ where: { id: m.id }, data: { userId: u.id, email } });
+    portalUsers.push({ user: u, member: m });
+  }
+
+  // ── Rutinas ──
+  console.log('📋 Rutinas...');
+  const exs = await prisma.exercise.findMany({ include: { category: true } });
+  const byCat = (name: string) => exs.filter((e) => e.category?.name === name);
+  const dayOf = (dayOfWeek: number, title: string, list: { e: any; sets?: number; reps?: string; rest?: number; weight?: string }[]) => ({ dayOfWeek, title, exercises: { create: list.filter((x) => x.e).map((x, j) => ({ exerciseId: x.e.id, order: j, sets: x.sets ?? 3, reps: x.reps ?? '12', restSeconds: x.rest ?? 60, weight: x.weight })) } });
+  const fullBody = await prisma.routine.create({ data: { name: 'Full body 3 días · Principiante', description: 'Rutina de cuerpo completo para adaptación, 3 sesiones por semana.', goal: 'GENERAL', level: 'BEGINNER', weeks: 6, isTemplate: true, trainerId: trainers[0].id,
+    days: { create: [
+      dayOf(1, 'Cuerpo completo A', [{ e: byCat('Piernas')[0], sets: 3, reps: '12' }, { e: byCat('Pecho')[1], sets: 3, reps: '12' }, { e: byCat('Espalda')[0], sets: 3, reps: '15' }, { e: byCat('Abdominales')[0], sets: 3, reps: '15' }]),
+      dayOf(3, 'Cuerpo completo B', [{ e: byCat('Piernas')[3], sets: 3, reps: '12' }, { e: byCat('Hombros')[1], sets: 3, reps: '15' }, { e: byCat('Bíceps')[1], sets: 3, reps: '12' }, { e: byCat('Abdominales')[2], sets: 3, reps: '45 s' }]),
+      dayOf(5, 'Cuerpo completo C', [{ e: byCat('Piernas')[1], sets: 3, reps: '12' }, { e: byCat('Pecho')[0], sets: 3, reps: '10' }, { e: byCat('Espalda')[1], sets: 3, reps: '10' }, { e: byCat('Cardio')[0], sets: 1, reps: '20 min' }]),
+    ] } } });
+  const ppl = await prisma.routine.create({ data: { name: 'Empuje · Tirón · Pierna', description: 'Hipertrofia intermedia, 6 días con descanso el domingo.', goal: 'HYPERTROPHY', level: 'INTERMEDIATE', weeks: 8, isTemplate: true, trainerId: trainers[0].id,
+    days: { create: [
+      dayOf(1, 'Empuje', [{ e: byCat('Pecho')[0], sets: 4, reps: '8', rest: 120, weight: '60 kg' }, { e: byCat('Hombros')[0], sets: 4, reps: '10', rest: 90 }, { e: byCat('Pecho')[1], sets: 3, reps: '12' }, { e: byCat('Hombros')[1], sets: 3, reps: '15', rest: 45 }]),
+      dayOf(2, 'Tirón', [{ e: byCat('Espalda')[2], sets: 4, reps: '6-8', rest: 120 }, { e: byCat('Espalda')[1], sets: 4, reps: '10', rest: 90 }, { e: byCat('Bíceps')[0], sets: 3, reps: '10' }, { e: byCat('Bíceps')[2], sets: 3, reps: '12' }]),
+      dayOf(3, 'Pierna', [{ e: byCat('Piernas')[0], sets: 4, reps: '8', rest: 150, weight: '80 kg' }, { e: byCat('Piernas')[4], sets: 4, reps: '8', rest: 120 }, { e: byCat('Piernas')[1], sets: 3, reps: '12' }, { e: byCat('Abdominales')[1], sets: 3, reps: '15' }]),
+      dayOf(4, 'Empuje', [{ e: byCat('Pecho')[0], sets: 4, reps: '10', rest: 90 }, { e: byCat('Hombros')[0], sets: 3, reps: '12' }, { e: byCat('Pecho')[1], sets: 3, reps: '15' }]),
+      dayOf(5, 'Tirón', [{ e: byCat('Espalda')[1], sets: 4, reps: '10' }, { e: byCat('Espalda')[0], sets: 3, reps: '15' }, { e: byCat('Bíceps')[1], sets: 3, reps: '12' }]),
+      dayOf(6, 'Pierna', [{ e: byCat('Piernas')[3], sets: 4, reps: '12' }, { e: byCat('Piernas')[2], sets: 3, reps: '12' }, { e: byCat('Cardio')[1], sets: 4, reps: '15', rest: 45 }]),
+    ] } } });
+  // Asignada a Paola y a dos miembros más
+  for (const [i, m] of [members[7], activeMembers[3], activeMembers[10]].entries()) {
+    const src = i === 0 ? ppl : fullBody;
+    const full = await prisma.routine.findUniqueOrThrow({ where: { id: src.id }, include: { days: { include: { exercises: true } } } });
+    await prisma.routine.create({ data: { name: full.name, description: full.description, goal: full.goal, level: full.level, weeks: full.weeks, isTemplate: false, memberId: m.id, trainerId: full.trainerId, startDate: daysAgo(between(3, 20)),
+      days: { create: full.days.map((d, k) => ({ dayOfWeek: d.dayOfWeek, title: d.title, order: k, exercises: { create: d.exercises.map((e, j) => ({ exerciseId: e.exerciseId, order: j, sets: e.sets, reps: e.reps, restSeconds: e.restSeconds, weight: e.weight })) } })) } } });
+  }
+
+  // ── Congelación de ejemplo ──
+  const frozenMember = activeMembers[20];
+  if (frozenMember) {
+    const sub = await prisma.subscription.findFirst({ where: { memberId: frozenMember.id, status: 'ACTIVE' } });
+    if (sub) {
+      await prisma.membershipFreeze.create({ data: { memberId: frozenMember.id, subscriptionId: sub.id, startDate: daysAgo(2), endDate: addDays(now, 8), days: 10, reason: 'Viaje de trabajo' } });
+      await prisma.member.update({ where: { id: frozenMember.id }, data: { frozenUntil: addDays(now, 8), expiresAt: addDays(frozenMember.expiresAt ?? now, 10) } });
+    }
+  }
+
+  // ── Notificaciones in-app ──
+  console.log('🔔 Notificaciones...');
+  await prisma.notification.createMany({ data: [
+    { userId: admin.id, type: 'PAYMENT', title: 'Pago en línea recibido', body: 'Membresía Oro · $180 · Cristina Álvarez', link: '/pagos', createdAt: daysAgo(0, 9, 12) },
+    { userId: admin.id, type: 'EXPIRING', title: '5 membresías vencen esta semana', body: 'Revisa la lista de renovaciones pendientes.', link: '/suscripciones', createdAt: daysAgo(0, 8, 0) },
+    { userId: admin.id, type: 'STOCK', title: '3 productos con stock bajo', body: 'Batido proteico listo (4), Licra deportiva (3), Toalla microfibra (2)', link: '/tienda', createdAt: daysAgo(1, 8, 0), readAt: daysAgo(1, 10, 0) },
+    { userId: admin.id, type: 'BOOKING', title: 'Lista de espera en CrossFit WOD', body: '2 miembros esperan cupo para el sábado 10:00.', link: '/clases/reservas', createdAt: daysAgo(1, 16, 30) },
+    { userId: uReception.id, type: 'EXPIRING', title: '5 membresías vencen esta semana', body: 'Contacta a los miembros para ofrecer renovación.', link: '/suscripciones', createdAt: daysAgo(0, 8, 0) },
+    { memberId: members[7].id, type: 'BOOKING', title: 'Reserva confirmada: Power Yoga Class', body: 'Lunes · 09:15 – 11:45 · Sala 2', link: '/portal/reservas', createdAt: daysAgo(1, 18, 0) },
+    { memberId: members[7].id, type: 'SYSTEM', title: 'Nueva rutina asignada', body: 'Néstor Camelo te asignó “Empuje · Tirón · Pierna”. Revísala en Mi rutina.', link: '/portal/rutina', createdAt: daysAgo(4, 11, 0), readAt: daysAgo(4, 12, 0) },
+    { memberId: members[7].id, type: 'PAYMENT', title: 'Pago recibido', body: 'Membresía Miembro VIP · $320', link: '/portal/pagos', createdAt: daysAgo(12, 10, 0), readAt: daysAgo(12, 10, 5) },
+  ] });
+  await prisma.notificationLog.createMany({ data: [
+    { channel: 'EMAIL', template: 'expiring', recipient: 'simon.garcia@gmail.com', subject: 'Tu membresía vence en 2 días', body: '<p>Vista previa</p>', status: 'PREVIEW', createdAt: daysAgo(0, 8, 0) },
+    { channel: 'EMAIL', template: 'welcome', recipient: 'nuevo.miembro@gmail.com', subject: '¡Bienvenido/a a GYM PRO!', body: '<p>Vista previa</p>', status: 'PREVIEW', createdAt: daysAgo(2, 15, 0) },
+  ] });
+
   // ── Boletines y avisos ──
   console.log('📰 Boletines y avisos...');
   await prisma.newsletter.createMany({ data: [
@@ -429,7 +503,7 @@ async function main() {
 
   const counts = { miembros: await prisma.member.count(), pagos: await prisma.payment.count(), asistencias: await prisma.attendance.count(), reservas: await prisma.booking.count(), ventas: await prisma.sale.count() };
   console.log('✅ Datos de demostración creados:', counts);
-  console.log('\n👤 Credenciales:\n   admin@gympro.app / admin123\n   recepcion@gympro.app / recepcion123\n   nestor@gympro.app / entrenador123\n   contador@gympro.app / contador123');
+  console.log('\n👤 Credenciales:\n   admin@gympro.app / admin123\n   recepcion@gympro.app / recepcion123\n   nestor@gympro.app / entrenador123\n   contador@gympro.app / contador123\n   paola@gympro.app / miembro123  (portal del miembro)');
 }
 
 main().catch((e) => { console.error(e); process.exit(1); }).finally(() => prisma.$disconnect());

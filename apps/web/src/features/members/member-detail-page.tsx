@@ -3,10 +3,12 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
-import { ArrowLeft, Cake, CalendarDays, ClipboardCheck, CreditCard, Dumbbell, Heart, Mail, MapPin, Pencil, Phone, Plus, QrCode, Trash2, User, UsersRound } from 'lucide-react';
+import { ArrowLeft, Cake, CalendarDays, ClipboardCheck, CreditCard, Dumbbell, Heart, KeyRound, Mail, MapPin, Pencil, Phone, Plus, QrCode, Snowflake, Trash2, User, UsersRound } from 'lucide-react';
 import { del, get, patch, post } from '@/lib/api';
 import { age, fmtDate, fmtDateTime, fmtMoney, fmtTime, daysUntil } from '@/lib/format';
-import { ATTENDANCE_METHOD, BOOKING_STATUS, GENDER, MEAL_TYPE, MEASUREMENT_TYPE, MEMBER_STATUS, PAYMENT_METHOD, PAYMENT_STATUS, SUBSCRIPTION_STATUS, toOptions } from '@/lib/labels';
+import { ATTENDANCE_METHOD, BOOKING_STATUS, DIFFICULTY, GENDER, MEAL_TYPE, MEASUREMENT_TYPE, MEMBER_STATUS, PAYMENT_METHOD, PAYMENT_STATUS, ROUTINE_GOAL, SUBSCRIPTION_STATUS, toOptions } from '@/lib/labels';
+import { DAYS_SHORT_ES } from '@/lib/format';
+import { download } from '@/lib/api';
 import { DAYS_ES } from '@/lib/format';
 import type { MemberDetail } from '@/types';
 import { Avatar, Badge, Button, Card, CardBody, CardHeader, ColorDot, ConfirmDialog, Dialog, EmptyState, InfoRow, Skeleton, StatusBadge, Tabs, TabsContent, UnderlineTab, UnderlineTabsList } from '@/components/ui';
@@ -42,9 +44,11 @@ export default function MemberDetailPage() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const [dialog, setDialog] = useState<null | 'edit' | 'measure' | 'subscription' | 'payment' | 'delete'>(null);
+  const [dialog, setDialog] = useState<null | 'edit' | 'measure' | 'subscription' | 'payment' | 'delete' | 'freeze' | 'portal' | 'routine'>(null);
+  const [freezeTarget, setFreezeTarget] = useState<string | null>(null);
   const { data: m, isLoading } = useQuery({ queryKey: ['members', id], queryFn: () => get<MemberDetail>(`/members/${id}`) });
   const { data: nutrition } = useQuery({ queryKey: ['nutrition', 'weekly', id], queryFn: () => get<any[]>(`/nutrition/member/${id}/weekly`), enabled: !!id });
+  const { data: routine } = useQuery({ queryKey: ['routines', 'member', id], queryFn: () => get<any>(`/routines/member/${id}/active`), enabled: !!id });
   const refresh = () => { qc.invalidateQueries({ queryKey: ['members', id] }); qc.invalidateQueries({ queryKey: ['/members'] }); };
 
   const mutate = (fn: (v: any) => Promise<any>, msg: string) => useMutation({ mutationFn: fn, onSuccess: () => { toast.success(msg); setDialog(null); refresh(); }, onError: (e: Error) => toast.error(e.message) });
@@ -52,6 +56,9 @@ export default function MemberDetailPage() {
   const addMeasure = mutate((v) => post(`/members/${id}/measurements`, v), 'Medición registrada');
   const addSub = mutate((v) => post('/subscriptions', { ...v, memberId: id }), 'Suscripción registrada');
   const addPay = mutate((v) => post('/payments', { ...v, memberId: id }), 'Pago registrado');
+  const freeze = mutate((v) => post(`/subscriptions/${freezeTarget}/freeze`, v), 'Membresía congelada');
+  const portalAccount = mutate((v) => post(`/members/${id}/portal-account`, v), 'Acceso al portal listo');
+  const assignRoutine = useMutation({ mutationFn: (v: any) => post(`/routines/${v.routineId}/assign`, { memberId: id, startDate: v.startDate }), onSuccess: () => { toast.success('Rutina asignada'); setDialog(null); qc.invalidateQueries({ queryKey: ['routines'] }); }, onError: (e: Error) => toast.error(e.message) });
   const remove = useMutation({ mutationFn: () => del(`/members/${id}`), onSuccess: () => { toast.success('Miembro eliminado'); navigate('/miembros'); }, onError: (e: Error) => toast.error(e.message) });
   const removeMeasure = useMutation({ mutationFn: (mid: string) => del(`/members/${id}/measurements/${mid}`), onSuccess: refresh });
   const checkIn = useMutation({ mutationFn: () => post<any>('/attendance/check-in', { memberId: id, method: 'MANUAL' }), onSuccess: (r) => { toast.success(r.action === 'CHECK_IN' ? 'Entrada registrada' : 'Salida registrada'); refresh(); }, onError: (e: Error) => toast.error(e.message) });
@@ -79,6 +86,8 @@ export default function MemberDetailPage() {
                 <h1 className="text-[24px] font-bold leading-tight">{name}</h1>
                 <StatusBadge value={m.status} map={MEMBER_STATUS} />
                 {m.plan && <Badge tone="brand"><ColorDot color={m.plan.color} />{m.plan.name}</Badge>}
+                {(m as any).frozenUntil && new Date((m as any).frozenUntil) > new Date() && <Badge tone="info"><Snowflake className="h-3 w-3" />Congelada hasta {fmtDate((m as any).frozenUntil)}</Badge>}
+                {(m as any).branch && <Badge>{(m as any).branch.name}</Badge>}
               </div>
               <p className="mt-1 text-[13px] text-ink-2">ID <b className="text-ink">{m.code}</b> · miembro desde {fmtDate(m.joinDate)} {m.expiresAt && <>· vence el <b className={d !== null && d <= 7 ? 'text-danger-ink' : 'text-ink'}>{fmtDate(m.expiresAt)}</b>{d !== null && d > 0 && d <= 7 ? ` (en ${d} días)` : ''}</>}</p>
               <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[13px] text-ink-2">
@@ -92,6 +101,7 @@ export default function MemberDetailPage() {
                 <Button size="sm" variant="dark" onClick={() => setDialog('subscription')}><CalendarDays className="h-4 w-4" />Nueva suscripción</Button>
                 <Button size="sm" variant="secondary" onClick={() => setDialog('payment')}><CreditCard className="h-4 w-4" />Registrar pago</Button>
                 <Button size="sm" variant="outline" onClick={() => setDialog('edit')}><Pencil className="h-4 w-4" />Editar</Button>
+                <Button size="sm" variant="outline" onClick={() => setDialog('portal')}><KeyRound className="h-4 w-4" />{(m as any).user ? 'Portal activo' : 'Acceso al portal'}</Button>
                 <Button size="sm" variant="ghost" className="text-danger-ink" onClick={() => setDialog('delete')}><Trash2 className="h-4 w-4" /></Button>
               </div>
             </div>
@@ -112,6 +122,7 @@ export default function MemberDetailPage() {
           <UnderlineTab value="asistencia" count={m.attendance.length}>Asistencia</UnderlineTab>
           <UnderlineTab value="reservas" count={m.bookings.length}>Reservas</UnderlineTab>
           <UnderlineTab value="nutricion">Nutrición</UnderlineTab>
+          <UnderlineTab value="rutina">Rutina</UnderlineTab>
         </UnderlineTabsList>
 
         <TabsContent value="resumen" className="mt-5 grid gap-6 lg:grid-cols-2">
@@ -175,14 +186,14 @@ export default function MemberDetailPage() {
         <TabsContent value="suscripciones" className="mt-5">
           <Card>
             <CardHeader title="Historial de suscripción" action={<Button size="sm" onClick={() => setDialog('subscription')}><Plus className="h-4 w-4" />Nueva</Button>} />
-            <SimpleTable head={['Plan', 'Inicio', 'Fin', 'Precio', 'Estado']} rows={m.subscriptions.map((s) => [s.plan?.name, fmtDate(s.startDate), fmtDate(s.endDate), fmtMoney(s.price), <StatusBadge key={s.id} value={s.status} map={SUBSCRIPTION_STATUS} />])} />
+            <SimpleTable head={['Plan', 'Inicio', 'Fin', 'Precio', 'Estado', '']} rows={m.subscriptions.map((s) => [s.plan?.name, fmtDate(s.startDate), fmtDate(s.endDate), fmtMoney(s.price), <StatusBadge key={s.id} value={s.status} map={SUBSCRIPTION_STATUS} />, s.status === 'ACTIVE' ? <Button key={`${s.id}f`} size="sm" variant="outline" onClick={() => { setFreezeTarget(s.id); setDialog('freeze'); }}><Snowflake className="h-3.5 w-3.5" />Congelar</Button> : null])} />
           </Card>
         </TabsContent>
 
         <TabsContent value="pagos" className="mt-5">
           <Card>
             <CardHeader title="Pagos" action={<Button size="sm" onClick={() => setDialog('payment')}><Plus className="h-4 w-4" />Registrar</Button>} />
-            <SimpleTable head={['Factura', 'Concepto', 'Fecha', 'Método', 'Monto', 'Estado']} rows={m.payments.map((p) => [<span key={p.id} className="font-mono text-[12px]">{p.invoiceNumber}</span>, p.concept, fmtDate(p.paidAt), PAYMENT_METHOD[p.method], <b key={`${p.id}a`}>{fmtMoney(p.amount)}</b>, <StatusBadge key={`${p.id}s`} value={p.status} map={PAYMENT_STATUS} />])} />
+            <SimpleTable head={['Factura', 'Concepto', 'Fecha', 'Método', 'Monto', 'Estado', '']} rows={m.payments.map((p) => [<span key={p.id} className="font-mono text-[12px]">{p.invoiceNumber}</span>, p.concept, fmtDate(p.paidAt), PAYMENT_METHOD[p.method], <b key={`${p.id}a`}>{fmtMoney(p.amount)}</b>, <StatusBadge key={`${p.id}s`} value={p.status} map={PAYMENT_STATUS} />, <Button key={`${p.id}d`} size="sm" variant="ghost" onClick={() => download(`/payments/${p.id}/invoice.pdf`, `${p.invoiceNumber}.pdf`, true)}>PDF</Button>])} />
           </Card>
         </TabsContent>
 
@@ -219,6 +230,18 @@ export default function MemberDetailPage() {
             </div>
           ) : <Card><EmptyState title="Sin plan nutricional" description="Asigna comidas desde Horario de nutrición." action={<Button variant="outline" onClick={() => navigate('/clases/nutricion')}>Ir a nutrición</Button>} /></Card>}
         </TabsContent>
+        <TabsContent value="rutina" className="mt-5">
+          {routine ? (
+            <Card>
+              <CardHeader title={routine.name} description={routine.description ?? undefined} action={<div className="flex gap-2"><Badge tone="brand">{ROUTINE_GOAL[routine.goal]?.label ?? 'General'}</Badge><StatusBadge value={routine.level} map={DIFFICULTY} /><Button size="sm" variant="outline" onClick={() => setDialog('routine')}>Cambiar</Button></div>} />
+              <CardBody className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {routine.days.map((d: any) => (
+                  <div key={d.id} className="rounded-xl border border-line p-3"><p className="font-display text-[13.5px] font-semibold">{DAYS_SHORT_ES[d.dayOfWeek]} · {d.title ?? 'Sesión'}</p><ul className="mt-2 space-y-1">{d.exercises.map((x: any) => <li key={x.id} className="flex justify-between text-[12.5px]"><span className="truncate">{x.exercise.name}</span><span className="ml-2 shrink-0 font-semibold tabular-nums">{x.sets}×{x.reps}</span></li>)}</ul></div>
+                ))}
+              </CardBody>
+            </Card>
+          ) : <Card><EmptyState icon={<Dumbbell />} title="Sin rutina asignada" description="Asigna una plantilla o crea una rutina personalizada desde Rutinas." action={<div className="flex gap-2"><Button onClick={() => setDialog('routine')}>Asignar plantilla</Button><Button variant="outline" onClick={() => navigate('/rutinas')}>Ir a Rutinas</Button></div>} /></Card>}
+        </TabsContent>
       </Tabs>
 
       {/* Diálogos */}
@@ -233,6 +256,16 @@ export default function MemberDetailPage() {
       </Dialog>
       <Dialog open={dialog === 'payment'} onOpenChange={(o) => !o && setDialog(null)} title="Registrar pago" footer={<><Button variant="ghost" onClick={() => setDialog(null)}>Cancelar</Button><Button type="submit" form="pay-form" loading={addPay.isPending}>Registrar</Button></>}>
         <AutoForm id="pay-form" fields={paymentFields} defaultValues={{ concept: m.plan ? `Membresía ${m.plan.name}` : '', amount: m.plan?.price, method: 'CASH', status: 'PAID' }} onSubmit={(v) => addPay.mutate(v)} />
+      </Dialog>
+      <Dialog open={dialog === 'freeze'} onOpenChange={(o) => !o && setDialog(null)} title="Congelar membresía" description="Se extiende la fecha de vencimiento por los días congelados y se bloquea el acceso durante ese periodo." size="sm" footer={<><Button variant="ghost" onClick={() => setDialog(null)}>Cancelar</Button><Button type="submit" form="freeze-form" loading={freeze.isPending}>Congelar</Button></>}>
+        <AutoForm id="freeze-form" fields={[{ name: 'days', label: 'Días', type: 'number', required: true, min: 1, max: 90 }, { name: 'startDate', label: 'Desde', type: 'date' }, { name: 'reason', label: 'Motivo', placeholder: 'Viaje, lesión…' }]} defaultValues={{ days: 15 }} onSubmit={(v) => freeze.mutate(v)} columns={1} />
+      </Dialog>
+      <Dialog open={dialog === 'portal'} onOpenChange={(o) => !o && setDialog(null)} title="Acceso al portal del miembro" description={m.email ? `El miembro entrará con el correo ${m.email}.` : 'El miembro necesita un correo registrado.'} size="sm" footer={<><Button variant="ghost" onClick={() => setDialog(null)}>Cancelar</Button><Button type="submit" form="portal-form" loading={portalAccount.isPending} disabled={!m.email}>{(m as any).user ? 'Restablecer contraseña' : 'Crear acceso'}</Button></>}>
+        {(m as any).user && <p className="mb-3 rounded-xl bg-success-soft p-3 text-[12.5px] text-success-ink">Cuenta activa · último acceso {fmtDateTime((m as any).user.lastLoginAt)}</p>}
+        <AutoForm id="portal-form" fields={[{ name: 'password', label: 'Contraseña', type: 'password', required: true, hint: 'Mínimo 6 caracteres. Compártela con el miembro.' }]} onSubmit={(v) => portalAccount.mutate(v)} columns={1} />
+      </Dialog>
+      <Dialog open={dialog === 'routine'} onOpenChange={(o) => !o && setDialog(null)} title="Asignar rutina" description="Se crea una copia de la plantilla para este miembro." size="sm" footer={<><Button variant="ghost" onClick={() => setDialog(null)}>Cancelar</Button><Button type="submit" form="routine-form" loading={assignRoutine.isPending}>Asignar</Button></>}>
+        <AutoForm id="routine-form" fields={[{ name: 'routineId', label: 'Plantilla', type: 'select', source: 'routineTemplates', required: true }, { name: 'startDate', label: 'Inicio', type: 'date' }]} onSubmit={(v) => assignRoutine.mutate(v)} columns={1} />
       </Dialog>
       <ConfirmDialog open={dialog === 'delete'} onOpenChange={(o) => !o && setDialog(null)} title="Eliminar miembro" description={`Se eliminará a ${name} con todo su historial. Esta acción no se puede deshacer.`} onConfirm={() => remove.mutate()} loading={remove.isPending} />
     </div>

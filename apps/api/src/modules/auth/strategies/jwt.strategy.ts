@@ -17,7 +17,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: { sub: string }) {
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      include: { accessRole: true },
+      include: { accessRole: true, member: { select: { id: true } }, staff: { select: { id: true } } },
     });
     if (!user || !user.isActive) throw new UnauthorizedException('Sesión inválida');
     return {
@@ -26,6 +26,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       name: user.name,
       role: user.role,
       avatarUrl: user.avatarUrl,
+      memberId: user.member?.id ?? null,
+      staffId: user.staff?.id ?? null,
       permissions: safeJson(user.accessRole?.permissions),
     };
   }

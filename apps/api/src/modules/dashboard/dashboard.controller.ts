@@ -1,9 +1,11 @@
 import { Controller, Get, Query } from '@nestjs/common';
+import { ModuleKey } from '../../common/decorators';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { DashboardService } from './dashboard.service';
 
 @ApiTags('Tablero')
 @ApiBearerAuth()
+@ModuleKey('dashboard')
 @Controller('dashboard')
 export class DashboardController {
   constructor(private readonly service: DashboardService) {}

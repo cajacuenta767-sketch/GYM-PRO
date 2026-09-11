@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { ModuleKey } from '../../common/decorators';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { PaginationDto } from '../../common/dto';
 import { CreateProductCategoryDto, CreateProductDto, CreateSaleDto, QueryProductsDto, UpdateProductDto } from './dto/product.dto';
@@ -6,6 +7,7 @@ import { ProductsService } from './products.service';
 
 @ApiTags('Tienda')
 @ApiBearerAuth()
+@ModuleKey('store')
 @Controller('store')
 export class ProductsController {
   constructor(private readonly service: ProductsService) {}

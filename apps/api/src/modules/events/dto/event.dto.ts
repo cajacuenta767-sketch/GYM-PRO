@@ -15,11 +15,13 @@ export class CreateEventDto {
   @ApiPropertyOptional() @IsOptional() @IsNumber() fee?: number;
   @ApiPropertyOptional() @IsOptional() @IsString() imageUrl?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() color?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() branchId?: string;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() isPublic?: boolean;
 }
 export class UpdateEventDto extends PartialType(CreateEventDto) {}
 
 export class QueryEventsDto extends PaginationDto {
+  @ApiPropertyOptional() @IsOptional() @IsString() branchId?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() type?: string;
   @ApiPropertyOptional() @IsOptional() @IsDateString() from?: string;
   @ApiPropertyOptional() @IsOptional() @IsDateString() to?: string;

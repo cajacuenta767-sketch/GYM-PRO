@@ -1,11 +1,12 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { CurrentUser } from '../../common/decorators';
+import { CurrentUser, ModuleKey } from '../../common/decorators';
 import { CreateMessageDto, QueryMessagesDto } from './dto/message.dto';
 import { MessagesService } from './messages.service';
 
 @ApiTags('Mensajes')
 @ApiBearerAuth()
+@ModuleKey('messages')
 @Controller('messages')
 export class MessagesController {
   constructor(private readonly service: MessagesService) {}

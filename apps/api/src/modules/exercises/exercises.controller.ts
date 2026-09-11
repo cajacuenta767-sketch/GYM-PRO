@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { ModuleKey } from '../../common/decorators';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { PaginationDto } from '../../common/dto';
 import {
@@ -8,6 +9,7 @@ import { ExercisesService } from './exercises.service';
 
 @ApiTags('Ejercicios')
 @ApiBearerAuth()
+@ModuleKey('exercises')
 @Controller('exercises')
 export class ExercisesController {
   constructor(private readonly service: ExercisesService) {}

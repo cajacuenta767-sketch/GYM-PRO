@@ -1,9 +1,11 @@
 import { Controller, Get, Query } from '@nestjs/common';
+import { ModuleKey } from '../../common/decorators';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { ReportsService } from './reports.service';
 
 @ApiTags('Reportes')
 @ApiBearerAuth()
+@ModuleKey('reports')
 @Controller('reports')
 export class ReportsController {
   constructor(private readonly service: ReportsService) {}

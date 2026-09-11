@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
-import { IsBoolean, IsDateString, IsIn, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsDateString, IsIn, IsInt, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 import { PaginationDto } from '../../../common/dto';
 
 export const SUBSCRIPTION_STATUS = ['ACTIVE', 'EXPIRED', 'CANCELLED', 'PENDING'] as const;
@@ -21,4 +21,10 @@ export class QuerySubscriptionsDto extends PaginationDto {
   @ApiPropertyOptional() @IsOptional() @IsString() memberId?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() planId?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() status?: string;
+}
+
+export class FreezeDto {
+  @ApiProperty({ example: 15, description: 'Días de congelación' }) @IsInt() @Min(1) @Max(90) days: number;
+  @ApiPropertyOptional({ description: 'Por defecto: hoy' }) @IsOptional() @IsDateString() startDate?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() reason?: string;
 }

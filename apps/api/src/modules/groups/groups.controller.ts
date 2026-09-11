@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { ModuleKey } from '../../common/decorators';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { PaginationDto } from '../../common/dto';
 import { CreateGroupDto, GroupMembersDto, UpdateGroupDto } from './dto/group.dto';
@@ -6,6 +7,7 @@ import { GroupsService } from './groups.service';
 
 @ApiTags('Grupos')
 @ApiBearerAuth()
+@ModuleKey('groups')
 @Controller('groups')
 export class GroupsController {
   constructor(private readonly service: GroupsService) {}

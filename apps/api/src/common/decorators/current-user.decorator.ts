@@ -5,6 +5,8 @@ export interface JwtUser {
   email: string;
   name: string;
   role: string;
+  memberId?: string | null;
+  staffId?: string | null;
   permissions: string[];
 }
 

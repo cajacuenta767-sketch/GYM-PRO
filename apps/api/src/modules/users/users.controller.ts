@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { Roles } from '../../common/decorators';
+import { ModuleKey, Roles } from '../../common/decorators';
 import { PaginationDto } from '../../common/dto';
 import { CreateUserDto, UpdateUserDto } from './dto/user.dto';
 import { UsersService } from './users.service';
@@ -8,6 +8,7 @@ import { UsersService } from './users.service';
 @ApiTags('Usuarios')
 @ApiBearerAuth()
 @Roles('ADMIN')
+@ModuleKey('access')
 @Controller('users')
 export class UsersController {
   constructor(private readonly users: UsersService) {}

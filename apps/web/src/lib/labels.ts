@@ -15,9 +15,14 @@ export const PAYMENT_STATUS: Record<string, { label: string; tone: Tone }> = {
   PAID: { label: 'Pagado', tone: 'success' }, PENDING: { label: 'Pendiente', tone: 'warning' },
   FAILED: { label: 'Fallido', tone: 'danger' }, REFUNDED: { label: 'Reembolsado', tone: 'info' },
 };
-export const PAYMENT_METHOD: Record<string, string> = { CASH: 'Efectivo', CARD: 'Tarjeta', TRANSFER: 'Transferencia', STRIPE: 'Stripe' };
+export const PAYMENT_METHOD: Record<string, string> = { CASH: 'Efectivo', CARD: 'Tarjeta', TRANSFER: 'Transferencia', STRIPE: 'Stripe', ONLINE: 'En línea' };
+export const ROUTINE_GOAL: Record<string, { label: string; tone: Tone }> = {
+  HYPERTROPHY: { label: 'Hipertrofia', tone: 'brand' }, STRENGTH: { label: 'Fuerza', tone: 'info' }, FAT_LOSS: { label: 'Pérdida de grasa', tone: 'warning' },
+  ENDURANCE: { label: 'Resistencia', tone: 'success' }, MOBILITY: { label: 'Movilidad', tone: 'neutral' }, GENERAL: { label: 'General', tone: 'neutral' },
+};
+export const NOTIFICATION_LOG_STATUS: Record<string, { label: string; tone: Tone }> = { SENT: { label: 'Enviado', tone: 'success' }, PREVIEW: { label: 'Vista previa', tone: 'info' }, FAILED: { label: 'Fallido', tone: 'danger' } };
 export const BOOKING_STATUS: Record<string, { label: string; tone: Tone }> = {
-  CONFIRMED: { label: 'Confirmada', tone: 'info' }, CANCELLED: { label: 'Cancelada', tone: 'neutral' },
+  CONFIRMED: { label: 'Confirmada', tone: 'info' }, WAITLISTED: { label: 'Lista de espera', tone: 'warning' }, CANCELLED: { label: 'Cancelada', tone: 'neutral' },
   ATTENDED: { label: 'Asistió', tone: 'success' }, NO_SHOW: { label: 'No asistió', tone: 'danger' },
 };
 export const STAFF_ROLE: Record<string, string> = { TRAINER: 'Entrenador/a', RECEPTIONIST: 'Recepción', MANAGER: 'Gerencia', NUTRITIONIST: 'Nutricionista', ACCOUNTANT: 'Contabilidad', CLEANING: 'Servicios' };

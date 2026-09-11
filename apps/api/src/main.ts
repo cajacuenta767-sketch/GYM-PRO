@@ -1,5 +1,7 @@
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'node:path';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
@@ -8,10 +10,11 @@ import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter'
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { cors: false });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { cors: false, rawBody: true });
   const logger = new Logger('Bootstrap');
 
   app.setGlobalPrefix('api/v1');
+  app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads/', maxAge: '7d' });
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
   app.enableCors({
     origin: (process.env.CORS_ORIGIN ?? 'http://localhost:5173').split(','),

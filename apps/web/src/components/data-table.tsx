@@ -1,4 +1,5 @@
-import { ArrowDown, ArrowUp, ArrowUpDown, Eye, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowDown, ArrowUp, ArrowUpDown, Check, Eye, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button, Dropdown, DropdownContent, DropdownItem, DropdownTrigger, EmptyState, Pagination, SearchInput, Skeleton } from '@/components/ui';
 import type { ListController } from '@/hooks/use-list';
@@ -41,14 +42,22 @@ interface Props<T extends { id: string }> {
   mobileTitle?: (row: T) => React.ReactNode;
   hideSearch?: boolean;
   dense?: boolean;
+  /** Barra de acciones en lote; al definirla aparece una columna de selección. */
+  bulkBar?: (ids: string[], clear: () => void) => React.ReactNode;
 }
 
 export function DataTable<T extends { id: string }>({
   controller: c, columns, actions = [], onView, onEdit, onDelete, onRowClick, searchPlaceholder, toolbar,
-  emptyTitle = 'Sin resultados', emptyDescription = 'No hay registros que coincidan con la búsqueda.', emptyIcon, mobileTitle, hideSearch, dense,
+  emptyTitle = 'Sin resultados', emptyDescription = 'No hay registros que coincidan con la búsqueda.', emptyIcon, mobileTitle, hideSearch, dense, bulkBar,
 }: Props<T>) {
   const loading = c.query.isLoading;
   const rows = c.rows;
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const selectable = !!bulkBar;
+  const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
+  const toggleAll = () => setSelected((s) => { const n = new Set(s); if (allSelected) rows.forEach((r) => n.delete(r.id)); else rows.forEach((r) => n.add(r.id)); return n; });
+  const toggle = (id: string) => setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const clear = () => setSelected(new Set());
   const hasActions = !!(onView || onEdit || onDelete || actions.length);
 
   const rowActions = (row: T): RowAction<T>[] => {
@@ -70,11 +79,20 @@ export function DataTable<T extends { id: string }>({
         </div>
       )}
 
+      {selectable && selected.size > 0 && (
+        <div className="flex flex-wrap items-center gap-3 border-b border-line bg-brand-soft/50 px-4 py-2.5 animate-fade-in">
+          <span className="text-[13px] font-semibold text-brand-ink">{selected.size} seleccionados</span>
+          {bulkBar([...selected], clear)}
+          <button onClick={clear} className="ml-auto text-[12.5px] font-medium text-ink-2 hover:text-ink">Limpiar</button>
+        </div>
+      )}
+
       {/* ── Escritorio ── */}
       <div className="hidden md:block overflow-x-auto scrollbar-thin">
         <table className="w-full text-[13.5px]">
           <thead>
             <tr className="border-b border-line bg-surface-2/60">
+              {selectable && <th className="w-10 px-3"><Checkbox checked={allSelected} onChange={toggleAll} /></th>}
               {columns.map((col) => (
                 <th key={col.key} style={{ width: col.width }} className={cn('px-4 py-2.5 text-left text-[11.5px] font-semibold uppercase tracking-[0.06em] text-ink-3 whitespace-nowrap', col.className)}>
                   {col.sortable ? (
@@ -91,13 +109,15 @@ export function DataTable<T extends { id: string }>({
           <tbody>
             {loading && Array.from({ length: 6 }).map((_, i) => (
               <tr key={i} className="border-b border-line last:border-0">
+                {selectable && <td />}
                 {columns.map((col) => <td key={col.key} className="px-4 py-3.5"><Skeleton className="h-3.5 w-[70%]" /></td>)}
                 {hasActions && <td />}
               </tr>
             ))}
             {!loading && rows.map((row) => (
               <tr key={row.id} onClick={onRowClick ? () => onRowClick(row) : undefined}
-                className={cn('border-b border-line last:border-0 transition-colors hover:bg-surface-2/70', onRowClick && 'cursor-pointer', c.query.isFetching && 'opacity-70')}>
+                className={cn('border-b border-line last:border-0 transition-colors hover:bg-surface-2/70', onRowClick && 'cursor-pointer', c.query.isFetching && 'opacity-70', selected.has(row.id) && 'bg-brand-soft/30')}>
+                {selectable && <td className="px-3" onClick={(e) => e.stopPropagation()}><Checkbox checked={selected.has(row.id)} onChange={() => toggle(row.id)} /></td>}
                 {columns.map((col) => (
                   <td key={col.key} className={cn('px-4 align-middle', dense ? 'py-2' : 'py-3', col.className)}>
                     {col.render ? col.render(row) : String((row as any)[col.key] ?? '—')}
@@ -144,6 +164,14 @@ export function DataTable<T extends { id: string }>({
         <Pagination page={c.meta.page} pages={c.meta.pages} total={c.meta.total} limit={c.meta.limit} onPage={c.setPage} onLimit={c.setLimit} />
       </div>
     </div>
+  );
+}
+
+function Checkbox({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+  return (
+    <button type="button" role="checkbox" aria-checked={checked} onClick={onChange} className={cn('inline-flex h-[18px] w-[18px] items-center justify-center rounded-md border transition-colors focus-ring', checked ? 'border-transparent bg-brand text-[#14161C]' : 'border-line-strong bg-surface hover:border-brand')}>
+      {checked && <Check className="h-3 w-3" strokeWidth={3} />}
+    </button>
   );
 }
 

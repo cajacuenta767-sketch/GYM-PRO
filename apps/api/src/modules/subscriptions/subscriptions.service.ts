@@ -1,12 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { addDays, paginate, sequential, startOfDay } from '../../common/utils';
-import { CreateSubscriptionDto, QuerySubscriptionsDto, UpdateSubscriptionDto } from './dto/subscription.dto';
+import { CreateSubscriptionDto, FreezeDto, QuerySubscriptionsDto, UpdateSubscriptionDto } from './dto/subscription.dto';
+import { BadRequestException } from '@nestjs/common';
 
 const include = {
   member: { select: { id: true, code: true, firstName: true, lastName: true, photoUrl: true } },
   plan: { select: { id: true, name: true, color: true, durationDays: true } },
   payments: { select: { id: true, invoiceNumber: true, amount: true, status: true, paidAt: true } },
+  freezes: { orderBy: { startDate: 'desc' as const } },
 };
 
 @Injectable()
@@ -70,6 +72,27 @@ export class SubscriptionsService {
   }
 
   remove(id: string) { return this.prisma.subscription.delete({ where: { id }, select: { id: true } }); }
+
+  /** Congela la suscripción: extiende su fin y el vencimiento del miembro; bloquea el acceso durante el periodo. */
+  async freeze(id: string, dto: FreezeDto) {
+    const sub = await this.prisma.subscription.findUniqueOrThrow({ where: { id }, include: { member: true } });
+    if (sub.status !== 'ACTIVE') throw new BadRequestException('Solo se pueden congelar suscripciones activas');
+    const start = dto.startDate ? startOfDay(new Date(dto.startDate)) : startOfDay(new Date());
+    const end = addDays(start, dto.days);
+    return this.prisma.$transaction(async (tx) => {
+      await tx.membershipFreeze.create({ data: { memberId: sub.memberId, subscriptionId: sub.id, startDate: start, endDate: end, days: dto.days, reason: dto.reason } });
+      await tx.subscription.update({ where: { id }, data: { endDate: addDays(sub.endDate, dto.days) } });
+      await tx.member.update({ where: { id: sub.memberId }, data: { expiresAt: sub.member.expiresAt ? addDays(sub.member.expiresAt, dto.days) : addDays(sub.endDate, dto.days), frozenUntil: end } });
+      return tx.subscription.findUniqueOrThrow({ where: { id }, include });
+    });
+  }
+
+  /** Termina una congelación antes de tiempo (no devuelve los días ya extendidos). */
+  async unfreeze(id: string) {
+    const sub = await this.prisma.subscription.findUniqueOrThrow({ where: { id } });
+    await this.prisma.member.update({ where: { id: sub.memberId }, data: { frozenUntil: null } });
+    return this.findOne(id);
+  }
 
   async stats() {
     const now = new Date();

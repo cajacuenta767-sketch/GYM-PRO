@@ -1,10 +1,12 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { ModuleKey } from '../../common/decorators';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CreateEventDto, QueryEventsDto, RsvpDto, UpdateEventDto } from './dto/event.dto';
 import { EventsService } from './events.service';
 
 @ApiTags('Eventos')
 @ApiBearerAuth()
+@ModuleKey('events')
 @Controller('events')
 export class EventsController {
   constructor(private readonly service: EventsService) {}

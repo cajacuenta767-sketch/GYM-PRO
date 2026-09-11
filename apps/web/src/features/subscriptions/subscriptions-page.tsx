@@ -1,4 +1,9 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { Snowflake } from 'lucide-react';
+import { post } from '@/lib/api';
+import { AutoForm } from '@/components/auto-form';
 import { Link } from 'react-router-dom';
 import { CalendarClock, History, ShieldCheck, ShieldX } from 'lucide-react';
 import { get } from '@/lib/api';
@@ -8,7 +13,7 @@ import type { Subscription } from '@/types';
 import { CrudPage } from '@/components/crud-page';
 import type { Column } from '@/components/data-table';
 import type { FieldConfig } from '@/components/auto-form';
-import { Avatar, ColorDot, Select, StatCard, StatusBadge } from '@/components/ui';
+import { Avatar, Button, ColorDot, Dialog, Select, StatCard, StatusBadge } from '@/components/ui';
 
 const fields: FieldConfig[] = [
   { name: 'memberId', label: 'Miembro', type: 'select', source: 'members', required: true },
@@ -33,7 +38,10 @@ const columns: Column<Subscription>[] = [
 ];
 
 export default function SubscriptionsPage() {
+  const qc = useQueryClient();
+  const [freezing, setFreezing] = useState<Subscription | null>(null);
   const { data } = useQuery({ queryKey: ['subscriptions', 'stats'], queryFn: () => get<any>('/subscriptions/stats') });
+  const freeze = useMutation({ mutationFn: (v: any) => post(`/subscriptions/${freezing!.id}/freeze`, v), onSuccess: () => { toast.success('Membresía congelada'); setFreezing(null); qc.invalidateQueries({ queryKey: ['/subscriptions'] }); }, onError: (e: Error) => toast.error(e.message) });
   return (
     <CrudPage<Subscription>
       eyebrow="Miembros"
@@ -47,6 +55,12 @@ export default function SubscriptionsPage() {
       toForm={(s) => ({ ...s, registerPayment: false })}
       emptyIcon={<History />}
       searchPlaceholder="Buscar por miembro o plan…"
+      rowActions={[{ label: 'Congelar', icon: <Snowflake />, onClick: (s) => setFreezing(s), hidden: (s) => s.status !== 'ACTIVE' }]}
+      headerExtra={
+        <Dialog open={!!freezing} onOpenChange={(o) => !o && setFreezing(null)} title="Congelar membresía" description="Extiende el vencimiento por los días indicados y bloquea el acceso durante el periodo." size="sm" footer={<><Button variant="ghost" onClick={() => setFreezing(null)}>Cancelar</Button><Button type="submit" form="freeze-form" loading={freeze.isPending}>Congelar</Button></>}>
+          <AutoForm id="freeze-form" fields={[{ name: 'days', label: 'Días', type: 'number', required: true, min: 1, max: 90 }, { name: 'startDate', label: 'Desde', type: 'date' }, { name: 'reason', label: 'Motivo' }]} defaultValues={{ days: 15 }} onSubmit={(v) => freeze.mutate(v)} columns={1} />
+        </Dialog>
+      }
       above={
         <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard label="Activas" value={data?.active ?? '…'} icon={<ShieldCheck />} tone="success" />

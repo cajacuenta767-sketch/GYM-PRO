@@ -1,12 +1,13 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { Roles } from '../../common/decorators';
+import { ModuleKey, Roles } from '../../common/decorators';
 import { PaginationDto } from '../../common/dto';
 import { CreateMembershipDto, UpdateMembershipDto } from './dto/membership.dto';
 import { MembershipsService } from './memberships.service';
 
 @ApiTags('Membresías')
 @ApiBearerAuth()
+@ModuleKey('memberships')
 @Controller('memberships')
 export class MembershipsController {
   constructor(private readonly service: MembershipsService) {}

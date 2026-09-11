@@ -16,7 +16,8 @@ const fields: FieldConfig[] = [
   { name: 'phone', label: 'Teléfono', type: 'tel' },
   { name: 'hireDate', label: 'Fecha de contratación', type: 'date' },
   { name: 'salary', label: 'Salario mensual', type: 'number', step: 0.01 },
-  { name: 'photoUrl', label: 'URL de la foto', type: 'url', colSpan: 2 },
+  { name: 'branchId', label: 'Sede', type: 'select', source: 'branches' },
+  { name: 'photoUrl', label: 'Foto', type: 'image' },
   { name: 'bio', label: 'Biografía', type: 'textarea' },
   { name: 'isActive', label: 'Activo', type: 'switch' },
 ];

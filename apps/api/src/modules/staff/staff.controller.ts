@@ -1,11 +1,12 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { Roles } from '../../common/decorators';
+import { ModuleKey, Roles } from '../../common/decorators';
 import { CreateStaffDto, QueryStaffDto, UpdateStaffDto } from './dto/staff.dto';
 import { StaffService } from './staff.service';
 
 @ApiTags('Equipo')
 @ApiBearerAuth()
+@ModuleKey('staff')
 @Controller('staff')
 export class StaffController {
   constructor(private readonly service: StaffService) {}

@@ -1,16 +1,46 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { Roles } from '../../common/decorators';
-import { CreatePaymentDto, QueryPaymentsDto, UpdatePaymentDto } from './dto/payment.dto';
+import { Body, Controller, Delete, Get, Headers, HttpCode, Param, Patch, Post, Query, RawBodyRequest, Req, Res } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import type { Request, Response } from 'express';
+import { CurrentUser, ModuleKey, PortalAccess, Public, Roles } from '../../common/decorators';
+import type { JwtUser } from '../../common/decorators';
+import { CheckoutDto, ConfirmCheckoutDto, CreatePaymentDto, QueryPaymentsDto, UpdatePaymentDto } from './dto/payment.dto';
 import { PaymentsService } from './payments.service';
 
 @ApiTags('Pagos')
 @ApiBearerAuth()
+@ModuleKey('payments')
 @Controller('payments')
 export class PaymentsController {
   constructor(private readonly service: PaymentsService) {}
 
   @Get('stats') stats() { return this.service.stats(); }
+
+  @Post('checkout') @ApiOperation({ summary: 'Crear sesión de pago en línea para un plan' })
+  checkout(@Body() dto: CheckoutDto) { return this.service.createCheckout(dto); }
+
+  @Post('checkout/confirm') @HttpCode(200) @PortalAccess() @ApiOperation({ summary: 'Confirmar pago en línea al volver de la pasarela' })
+  async confirm(@Body() dto: ConfirmCheckoutDto, @CurrentUser() user: JwtUser) {
+    const r = await this.service.confirmCheckout(dto.providerRef, 'RETURN');
+    // Un miembro solo puede confirmar sus propios pagos
+    if (user.role === 'MEMBER' && r.payment.memberId !== user.memberId) return { forbidden: true };
+    return r;
+  }
+
+  @Public() @Post('webhooks/stripe') @HttpCode(200)
+  webhook(@Req() req: RawBodyRequest<Request>, @Headers('stripe-signature') sig?: string) {
+    return this.service.handleWebhook(req.rawBody ?? Buffer.from(JSON.stringify(req.body ?? {})), sig);
+  }
+
+  @Get(':id/invoice.pdf') @PortalAccess() @ApiOperation({ summary: 'Descargar factura en PDF' })
+  async invoice(@Param('id') id: string, @CurrentUser() user: JwtUser, @Res() res: Response) {
+    const p = await this.service.findOne(id);
+    if (user.role === 'MEMBER' && p.memberId !== user.memberId) { res.status(403).json({ success: false, message: 'Sin acceso a esta factura' }); return; }
+    const { buffer, filename } = await this.service.invoicePdf(id);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+    res.send(buffer);
+  }
+
   @Get() findAll(@Query() query: QueryPaymentsDto) { return this.service.findAll(query); }
   @Get(':id') findOne(@Param('id') id: string) { return this.service.findOne(id); }
   @Post() @Roles('ADMIN', 'ACCOUNTANT', 'STAFF') create(@Body() dto: CreatePaymentDto) { return this.service.create(dto); }

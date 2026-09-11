@@ -7,7 +7,8 @@ export const SETTING_GROUPS: Record<string, string> = {
   currency: 'billing', currencySymbol: 'billing', taxRate: 'billing', invoicePrefix: 'billing', stripeEnabled: 'billing',
   stripePublicKey: 'billing', lateFee: 'billing',
   notifyExpiring: 'notifications', expiringDays: 'notifications', notifyBirthday: 'notifications', notifyNewMember: 'notifications',
-  smtpHost: 'notifications', smtpFrom: 'notifications',
+  smtpHost: 'notifications', smtpPort: 'notifications', smtpUser: 'notifications', smtpPass: 'notifications', smtpFrom: 'notifications', whatsappNumber: 'notifications',
+  setupCompleted: 'general',
   primaryColor: 'appearance', theme: 'appearance', compactSidebar: 'appearance',
   qrCheckIn: 'access', autoCheckOutMinutes: 'access', allowExpiredGrace: 'access', graceDays: 'access',
 };

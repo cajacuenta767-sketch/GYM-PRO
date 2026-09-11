@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -18,6 +19,7 @@ const DEMO = [
   { label: 'Recepción', email: 'recepcion@gympro.app', password: 'recepcion123' },
   { label: 'Entrenador', email: 'nestor@gympro.app', password: 'entrenador123' },
   { label: 'Contador', email: 'contador@gympro.app', password: 'contador123' },
+  { label: 'Miembro (portal)', email: 'paola@gympro.app', password: 'miembro123' },
 ];
 
 export default function LoginPage() {
@@ -26,8 +28,8 @@ export default function LoginPage() {
   const form = useForm<Form>({ resolver: zodResolver(schema), defaultValues: { email: '', password: '' } });
 
   const login = useMutation({
-    mutationFn: (v: Form) => post<{ accessToken: string; user: AuthUser }>('/auth/login', v),
-    onSuccess: (d) => { setSession(d.accessToken, d.user); toast.success(`Bienvenido, ${d.user.name.split(' ')[0]}`); },
+    mutationFn: (v: Form) => post<{ accessToken: string; refreshToken: string; user: AuthUser }>('/auth/login', v),
+    onSuccess: (d) => { setSession(d.accessToken, d.refreshToken, d.user); toast.success(`Bienvenido, ${d.user.name.split(' ')[0]}`); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -65,7 +67,7 @@ export default function LoginPage() {
             <span className="font-display text-[20px] font-bold tracking-tight">GYM<span className="text-brand-ink">PRO</span></span>
           </div>
           <h2 className="font-display text-[26px] font-bold text-ink">Iniciar sesión</h2>
-          <p className="mt-1 text-[13.5px] text-ink-2">Ingresa con tu cuenta del gimnasio.</p>
+          <p className="mt-1 text-[13.5px] text-ink-2">Ingresa con tu cuenta del gimnasio. ¿Buscas información? <Link to="/publico" className="font-semibold text-brand-ink hover:underline">Ver planes y horarios</Link>.</p>
 
           <form onSubmit={form.handleSubmit((v) => login.mutate(v))} className="mt-7 space-y-4" noValidate>
             <div>

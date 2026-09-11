@@ -1,5 +1,5 @@
 import {
-  Activity, Apple, Bell, BookOpen, CalendarDays, CalendarRange, ClipboardCheck, CreditCard, Dumbbell, History,
+  Activity, Apple, Bell, BookOpen, ClipboardList, CalendarDays, CalendarRange, ClipboardCheck, CreditCard, Dumbbell, History,
   KeyRound, LayoutDashboard, Mail, Megaphone, Newspaper, PieChart, Settings, ShoppingBag, Sparkles, Ticket, UserCog, Users, UsersRound, Wallet,
   type LucideIcon,
 } from 'lucide-react';
@@ -37,6 +37,7 @@ export const NAV: NavSection[] = [
         { label: 'Reserva de clases', to: '/clases/reservas' },
         { label: 'Horario de nutrición', to: '/clases/nutricion' },
       ] },
+      { label: 'Rutinas', to: '/rutinas', icon: ClipboardList, permission: 'exercises.read' },
       { label: 'Actividades', to: '/actividades', icon: Activity, permission: 'activities.read' },
       { label: 'Ejercicios', to: '/ejercicios', icon: Dumbbell, permission: 'exercises.read' },
       { label: 'Eventos', to: '/eventos', icon: CalendarRange, permission: 'events.read' },
@@ -54,6 +55,7 @@ export const NAV: NavSection[] = [
     title: 'Comunicación',
     items: [
       { label: 'Mensajes', to: '/mensajes', icon: Mail, badge: 'messages' },
+      { label: 'Notificaciones', to: '/notificaciones', icon: Bell },
       { label: 'Boletín informativo', to: '/boletines', icon: Newspaper, permission: 'newsletters.read' },
       { label: 'Avisos', to: '/avisos', icon: Megaphone, permission: 'notices.read' },
     ],

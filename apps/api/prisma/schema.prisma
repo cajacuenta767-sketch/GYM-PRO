@@ -30,12 +30,46 @@ model User {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  accessRole   Role?        @relation(fields: [roleId], references: [id])
-  member       Member?
-  staff        Staff?
-  sentMessages Message[]    @relation("MessageSender")
-  inbox        Message[]    @relation("MessageRecipient")
-  auditLogs    AuditLog[]
+  accessRole    Role?          @relation(fields: [roleId], references: [id])
+  member        Member?
+  staff         Staff?
+  sentMessages  Message[]      @relation("MessageSender")
+  inbox         Message[]      @relation("MessageRecipient")
+  auditLogs     AuditLog[]
+  refreshTokens RefreshToken[]
+  notifications Notification[]
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  userAgent String?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ───────────── Sedes ─────────────
+
+model Branch {
+  id        String   @id @default(cuid())
+  name      String
+  address   String?
+  phone     String?
+  email     String?
+  color     String   @default("#22A6B3")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members Member[]
+  staff   Staff[]
+  classes GymClass[]
+  events  Event[]
+  sales   Sale[]
 }
 
 model Role {
@@ -56,7 +90,7 @@ model AccessLog {
   method   String   @default("QR") // QR | MANUAL | CARD | PIN
   allowed  Boolean  @default(true)
   reason   String?
-  gate     String?  // Entrada principal, Torniquete 2...
+  gate     String? // Entrada principal, Torniquete 2...
   at       DateTime @default(now())
 
   member Member? @relation(fields: [memberId], references: [id], onDelete: SetNull)
@@ -65,7 +99,7 @@ model AccessLog {
 model AuditLog {
   id        String   @id @default(cuid())
   userId    String?
-  action    String   // CREATE | UPDATE | DELETE | LOGIN
+  action    String // CREATE | UPDATE | DELETE | LOGIN
   entity    String
   entityId  String?
   detail    String?
@@ -117,7 +151,7 @@ model Member {
   phone            String?
   address          String?
   birthDate        DateTime?
-  gender           String?   // FEMENINO | MASCULINO | OTRO
+  gender           String? // FEMENINO | MASCULINO | OTRO
   photoUrl         String?
   username         String?
   planId           String?
@@ -129,12 +163,18 @@ model Member {
   emergencyContact String?
   notes            String?
   qrToken          String    @unique @default(cuid())
+  branchId         String?
+  frozenUntil      DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  user          User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
-  plan          MembershipPlan?    @relation(fields: [planId], references: [id], onDelete: SetNull)
-  trainer       Staff?             @relation(fields: [trainerId], references: [id], onDelete: SetNull)
+  branch        Branch?             @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  freezes       MembershipFreeze[]
+  routines      Routine[]
+  notifications Notification[]
+  user          User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  plan          MembershipPlan?     @relation(fields: [planId], references: [id], onDelete: SetNull)
+  trainer       Staff?              @relation(fields: [trainerId], references: [id], onDelete: SetNull)
   measurements  Measurement[]
   subscriptions Subscription[]
   payments      Payment[]
@@ -151,7 +191,7 @@ model Member {
 model Measurement {
   id         String   @id @default(cuid())
   memberId   String
-  type       String   // WEIGHT | WAIST | HEIGHT | BODY_FAT | CHEST | HIPS | ARM
+  type       String // WEIGHT | WAIST | HEIGHT | BODY_FAT | CHEST | HIPS | ARM
   value      Float
   unit       String   @default("kg")
   note       String?
@@ -171,31 +211,49 @@ model Subscription {
   notes     String?
   createdAt DateTime @default(now())
 
-  member   Member         @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  plan     MembershipPlan @relation(fields: [planId], references: [id])
+  member   Member             @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  plan     MembershipPlan     @relation(fields: [planId], references: [id])
   payments Payment[]
+  freezes  MembershipFreeze[]
+}
+
+model MembershipFreeze {
+  id             String   @id @default(cuid())
+  memberId       String
+  subscriptionId String?
+  startDate      DateTime
+  endDate        DateTime
+  days           Int
+  reason         String?
+  createdAt      DateTime @default(now())
+
+  member       Member        @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
 }
 
 // ───────────── Equipo ─────────────
 
 model Staff {
-  id        String    @id @default(cuid())
-  code      String    @unique
-  userId    String?   @unique
+  id        String   @id @default(cuid())
+  code      String   @unique
+  userId    String?  @unique
   firstName String
   lastName  String
   email     String?
   phone     String?
-  role      String    @default("TRAINER") // TRAINER | RECEPTIONIST | MANAGER | NUTRITIONIST | ACCOUNTANT | CLEANING
+  role      String   @default("TRAINER") // TRAINER | RECEPTIONIST | MANAGER | NUTRITIONIST | ACCOUNTANT | CLEANING
   specialty String?
   photoUrl  String?
-  hireDate  DateTime  @default(now())
+  hireDate  DateTime @default(now())
   salary    Float?
   bio       String?
-  isActive  Boolean   @default(true)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  branchId  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
+  branch     Branch?             @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  routines   Routine[]
   user       User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
   members    Member[]
   classes    GymClass[]
@@ -240,10 +298,12 @@ model GymClass {
   capacity    Int      @default(20)
   bookingFee  Float    @default(0)
   color       String   @default("#22B8CF")
+  branchId    String?
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  branch    Branch?         @relation(fields: [branchId], references: [id], onDelete: SetNull)
   trainer   Staff?          @relation(fields: [trainerId], references: [id], onDelete: SetNull)
   schedules ClassSchedule[]
   bookings  Booking[]
@@ -253,7 +313,7 @@ model GymClass {
 model ClassSchedule {
   id        String @id @default(cuid())
   classId   String
-  dayOfWeek Int    // 0 = Domingo ... 6 = Sábado
+  dayOfWeek Int // 0 = Domingo ... 6 = Sábado
   startTime String // "09:15"
   endTime   String // "11:45"
 
@@ -292,7 +352,7 @@ model NutritionSchedule {
   memberId       String
   nutritionistId String?
   dayOfWeek      Int
-  mealType       String   // BREAKFAST | SNACK_AM | LUNCH | SNACK_PM | DINNER
+  mealType       String // BREAKFAST | SNACK_AM | LUNCH | SNACK_PM | DINNER
   description    String
   calories       Int?
   protein        Int?
@@ -348,7 +408,55 @@ model Exercise {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  category ExerciseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  category     ExerciseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  routineItems RoutineExercise[]
+}
+
+// ───────────── Rutinas de entrenamiento ─────────────
+
+model Routine {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  goal        String? // HYPERTROPHY | STRENGTH | FAT_LOSS | ENDURANCE | MOBILITY | GENERAL
+  level       String    @default("INTERMEDIATE")
+  weeks       Int?
+  isTemplate  Boolean   @default(false)
+  memberId    String?
+  trainerId   String?
+  startDate   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  member  Member?      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  trainer Staff?       @relation(fields: [trainerId], references: [id], onDelete: SetNull)
+  days    RoutineDay[]
+}
+
+model RoutineDay {
+  id        String  @id @default(cuid())
+  routineId String
+  dayOfWeek Int
+  title     String?
+  order     Int     @default(0)
+
+  routine   Routine           @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  exercises RoutineExercise[]
+}
+
+model RoutineExercise {
+  id          String  @id @default(cuid())
+  dayId       String
+  exerciseId  String
+  order       Int     @default(0)
+  sets        Int     @default(3)
+  reps        String  @default("12") // "12" | "8-10" | "AMRAP"
+  restSeconds Int?
+  weight      String? // "20 kg" | "RPE 8"
+  notes       String?
+
+  day      RoutineDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  exercise Exercise   @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
 }
 
 // ───────────── Tienda ─────────────
@@ -391,8 +499,10 @@ model Sale {
   total         Float
   paymentMethod String   @default("CASH") // CASH | CARD | TRANSFER
   notes         String?
+  branchId      String?
   createdAt     DateTime @default(now())
 
+  branch Branch?    @relation(fields: [branchId], references: [id], onDelete: SetNull)
   member Member?    @relation(fields: [memberId], references: [id], onDelete: SetNull)
   staff  Staff?     @relation(fields: [staffId], references: [id], onDelete: SetNull)
   items  SaleItem[]
@@ -413,22 +523,24 @@ model SaleItem {
 // ───────────── Eventos y asistencia ─────────────
 
 model Event {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   title       String
   description String?
-  type        String   @default("EVENT") // EVENT | COMPETITION | WORKSHOP | HOLIDAY
+  type        String    @default("EVENT") // EVENT | COMPETITION | WORKSHOP | HOLIDAY
   startsAt    DateTime
   endsAt      DateTime?
   location    String?
   capacity    Int?
-  fee         Float    @default(0)
+  fee         Float     @default(0)
   imageUrl    String?
-  color       String   @default("#FF7A59")
-  isPublic    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  color       String    @default("#FF7A59")
+  isPublic    Boolean   @default(true)
+  branchId    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  rsvps EventRsvp[]
+  branch Branch?     @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  rsvps  EventRsvp[]
 }
 
 model EventRsvp {
@@ -467,6 +579,9 @@ model Payment {
   status         String    @default("PAID") // PAID | PENDING | FAILED | REFUNDED
   reference      String?
   notes          String?
+  provider       String? // STRIPE | MOCK
+  providerRef    String?   @unique
+  planId         String? // plan a activar cuando se confirme el pago en línea
   paidAt         DateTime  @default(now())
   dueDate        DateTime?
   createdAt      DateTime  @default(now())
@@ -516,6 +631,35 @@ model Notice {
   endsAt    DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+}
+
+// ───────────── Notificaciones ─────────────
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String?
+  memberId  String?
+  type      String    @default("INFO") // INFO | BOOKING | PAYMENT | EXPIRING | BIRTHDAY | STOCK | SYSTEM
+  title     String
+  body      String
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  member Member? @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
+
+model NotificationLog {
+  id        String   @id @default(cuid())
+  channel   String // EMAIL | WHATSAPP | INAPP
+  template  String?
+  recipient String
+  subject   String?
+  body      String
+  status    String   @default("SENT") // SENT | FAILED | PREVIEW
+  error     String?
+  createdAt DateTime @default(now())
 }
 
 // ───────────── Configuración ─────────────

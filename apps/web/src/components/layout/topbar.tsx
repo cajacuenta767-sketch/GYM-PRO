@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Bell, LogOut, Menu, Moon, QrCode, Search, Settings, Sun, User } from 'lucide-react';
-import { get } from '@/lib/api';
+import { get, post } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { NAV } from '@/app/nav';
 import { useUiStore, applyTheme } from '@/stores/ui.store';
@@ -11,6 +11,8 @@ import { Avatar, Button, Dropdown, DropdownContent, DropdownItem, DropdownLabel,
 import { NOTICE_TYPE } from '@/lib/labels';
 import { fmtRelative } from '@/lib/format';
 import { CommandPalette } from './command-palette';
+import { NotificationsList, useUnreadCount } from '@/features/notifications/notifications-list';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui';
 
 export function Topbar() {
   const navigate = useNavigate();
@@ -19,7 +21,7 @@ export function Topbar() {
   const theme = useUiStore((s) => s.theme);
   const setTheme = useUiStore((s) => s.setTheme);
   const user = useAuthStore((s) => s.user);
-  const logout = useAuthStore((s) => s.logout);
+  const logout = () => { const rt = useAuthStore.getState().refreshToken; post('/auth/logout', { refreshToken: rt }).catch(() => null).finally(() => useAuthStore.getState().logout()); };
   const [paletteOpen, setPaletteOpen] = useState(false);
 
   useEffect(() => { applyTheme(theme); }, [theme]);
@@ -30,6 +32,7 @@ export function Topbar() {
   }, []);
 
   const { data: notices } = useQuery({ queryKey: ['notices', 'active'], queryFn: () => get<any[]>('/notices/active'), refetchInterval: 120_000 });
+  const { data: unread } = useUnreadCount();
   const crumb = findCrumb(location.pathname);
   const isDark = document.documentElement.classList.contains('dark');
 
@@ -54,28 +57,30 @@ export function Topbar() {
 
       <Dropdown>
         <DropdownTrigger asChild>
-          <Button variant="ghost" size="icon" aria-label="Avisos" className="relative">
+          <Button variant="ghost" size="icon" aria-label="Notificaciones" className="relative">
             <Bell className="h-[18px] w-[18px]" />
-            {!!notices?.length && <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-brand ring-2 ring-bg" />}
+            {!!unread?.count && <span className="absolute right-1 top-1 min-w-[18px] rounded-full bg-brand px-1 text-center text-[10px] font-bold text-[#14161C] ring-2 ring-bg">{unread.count}</span>}
           </Button>
         </DropdownTrigger>
-        <DropdownContent className="w-80 p-0">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-line">
-            <p className="font-display text-[13.5px] font-semibold">Avisos activos</p>
-            <button onClick={() => navigate('/avisos')} className="text-[12px] font-medium text-brand-ink hover:underline">Ver todos</button>
-          </div>
-          <div className="max-h-80 overflow-y-auto scrollbar-thin">
-            {notices?.length ? notices.map((n) => (
-              <div key={n.id} className="px-4 py-3 border-b border-line last:border-0 hover:bg-surface-2">
-                <div className="flex items-center gap-2">
-                  <span className={cn('h-1.5 w-1.5 rounded-full', { INFO: 'bg-info', WARNING: 'bg-warning', URGENT: 'bg-danger', PROMO: 'bg-brand' }[n.type as string] ?? 'bg-ink-3')} />
-                  <p className="text-[13px] font-semibold text-ink truncate">{n.title}</p>
-                </div>
-                <p className="mt-1 text-[12px] text-ink-2 line-clamp-2">{n.content}</p>
-                <p className="mt-1 text-[11px] text-ink-3">{NOTICE_TYPE[n.type]?.label} · {fmtRelative(n.startsAt)}</p>
+        <DropdownContent className="w-[360px] p-0">
+          <Tabs defaultValue="notifs">
+            <div className="flex items-center justify-between border-b border-line px-3 py-2">
+              <TabsList className="bg-transparent border-0 p-0"><TabsTrigger value="notifs" count={unread?.count || undefined}>Notificaciones</TabsTrigger><TabsTrigger value="notices" count={notices?.length || undefined}>Avisos</TabsTrigger></TabsList>
+            </div>
+            <TabsContent value="notifs"><div className="max-h-96 overflow-y-auto scrollbar-thin"><NotificationsList compact /></div><button onClick={() => navigate('/notificaciones')} className="block w-full border-t border-line py-2 text-center text-[12.5px] font-semibold text-brand-ink hover:bg-surface-2">Ver todas</button></TabsContent>
+            <TabsContent value="notices">
+              <div className="max-h-96 overflow-y-auto scrollbar-thin">
+                {notices?.length ? notices.map((n) => (
+                  <div key={n.id} className="px-4 py-3 border-b border-line last:border-0 hover:bg-surface-2">
+                    <div className="flex items-center gap-2"><span className={cn('h-1.5 w-1.5 rounded-full', { INFO: 'bg-info', WARNING: 'bg-warning', URGENT: 'bg-danger', PROMO: 'bg-brand' }[n.type as string] ?? 'bg-ink-3')} /><p className="text-[13px] font-semibold text-ink truncate">{n.title}</p></div>
+                    <p className="mt-1 text-[12px] text-ink-2 line-clamp-2">{n.content}</p>
+                    <p className="mt-1 text-[11px] text-ink-3">{NOTICE_TYPE[n.type]?.label} · {fmtRelative(n.startsAt)}</p>
+                  </div>
+                )) : <p className="px-4 py-6 text-center text-[13px] text-ink-3">No hay avisos activos.</p>}
               </div>
-            )) : <p className="px-4 py-6 text-center text-[13px] text-ink-3">No hay avisos activos.</p>}
-          </div>
+              <button onClick={() => navigate('/avisos')} className="block w-full border-t border-line py-2 text-center text-[12.5px] font-semibold text-brand-ink hover:bg-surface-2">Gestionar avisos</button>
+            </TabsContent>
+          </Tabs>
         </DropdownContent>
       </Dropdown>
 

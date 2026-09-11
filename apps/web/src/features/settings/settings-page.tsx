@@ -1,7 +1,10 @@
 import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, Building2, CreditCard, KeyRound, Palette, Save } from 'lucide-react';
+import { Bell, Building2, CreditCard, KeyRound, MapPinned, Palette, Save, Wand2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { BranchesPanel } from './branches-panel';
+import { NotificationsPanel } from './notifications-panel';
 import { toast } from 'sonner';
 import { get, put } from '@/lib/api';
 import { Button, Card, CardBody, CardHeader, Input, Label, PageHeader, Select, Skeleton, Switch, Tabs, TabsContent, TabsList, TabsTrigger, Textarea, Hint } from '@/components/ui';
@@ -10,6 +13,7 @@ type Values = Record<string, any>;
 
 export default function SettingsPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { data, isLoading } = useQuery({ queryKey: ['settings'], queryFn: () => get<Values>('/settings') });
   const form = useForm<Values>({ defaultValues: {} });
   useEffect(() => { if (data) form.reset(data); }, [data]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -28,10 +32,10 @@ export default function SettingsPage() {
 
   return (
     <form onSubmit={form.handleSubmit((v) => save.mutate(v))} className="animate-slide-up">
-      <PageHeader eyebrow="Sistema" title="Configuración general" description="Datos del gimnasio, facturación, notificaciones, apariencia y control de acceso." actions={<Button type="submit" loading={save.isPending}><Save className="h-4 w-4" />Guardar cambios</Button>} />
+      <PageHeader eyebrow="Sistema" title="Configuración general" description="Datos del gimnasio, facturación, notificaciones, apariencia y control de acceso." actions={<><Button type="button" variant="outline" onClick={() => navigate('/configuracion/inicial')}><Wand2 className="h-4 w-4" />Asistente inicial</Button><Button type="submit" loading={save.isPending}><Save className="h-4 w-4" />Guardar cambios</Button></>} />
       <Tabs defaultValue="general" className="grid gap-6 lg:grid-cols-[220px_1fr]">
         <TabsList className="flex h-fit flex-col items-stretch gap-1 bg-transparent border-0 p-0">
-          {[['general', 'General', <Building2 key="g" />], ['billing', 'Facturación', <CreditCard key="b" />], ['notifications', 'Notificaciones', <Bell key="n" />], ['appearance', 'Apariencia', <Palette key="a" />], ['access', 'Acceso', <KeyRound key="k" />]].map(([v, l, i]) => (
+          {[['general', 'General', <Building2 key="g" />], ['branches', 'Sedes', <MapPinned key="s" />], ['billing', 'Facturación', <CreditCard key="b" />], ['notifications', 'Notificaciones', <Bell key="n" />], ['appearance', 'Apariencia', <Palette key="a" />], ['access', 'Acceso', <KeyRound key="k" />]].map(([v, l, i]) => (
             <TabsTrigger key={v as string} value={v as string} className="justify-start gap-2.5 px-3 py-2.5 data-[state=active]:bg-surface data-[state=active]:shadow-card [&_svg]:h-4 [&_svg]:w-4">{i}{l}</TabsTrigger>
           ))}
         </TabsList>
@@ -44,6 +48,7 @@ export default function SettingsPage() {
               <div className="sm:col-span-2"><Label>Horario de atención</Label><Textarea rows={2} {...form.register('openingHours')} /></div>
             </CardBody></Card>
           </TabsContent>
+          <TabsContent value="branches"><BranchesPanel /></TabsContent>
           <TabsContent value="billing">
             <Card><CardHeader title="Facturación y pagos" /><CardBody className="grid gap-4 sm:grid-cols-2">
               <div><Label>Moneda</Label><Select {...form.register('currency')}>{['USD', 'COP', 'MXN', 'PEN', 'CLP', 'ARS', 'EUR'].map((c) => <option key={c}>{c}</option>)}</Select></div>
@@ -55,8 +60,9 @@ export default function SettingsPage() {
             <Card><CardHeader title="Notificaciones automáticas" /><CardBody className="grid gap-3">
               <Toggle name="notifyExpiring" label="Aviso de vencimiento" hint="Notifica a los miembros antes de que venza su membresía." /><Text name="expiringDays" label="Días de anticipación" type="number" />
               <Toggle name="notifyBirthday" label="Felicitación de cumpleaños" /><Toggle name="notifyNewMember" label="Bienvenida a nuevos miembros" />
-              <div className="grid gap-4 sm:grid-cols-2 pt-2"><Text name="smtpHost" label="Servidor SMTP" placeholder="smtp.tu-dominio.com" /><Text name="smtpFrom" label="Remitente" type="email" /></div>
+              <div className="grid gap-4 sm:grid-cols-2 pt-2"><Text name="smtpHost" label="Servidor SMTP" placeholder="smtp.tu-dominio.com" hint="Vacío = los correos se guardan como vista previa." /><Text name="smtpPort" label="Puerto" type="number" placeholder="587" /><Text name="smtpUser" label="Usuario SMTP" /><Text name="smtpPass" label="Contraseña SMTP" type="password" /><Text name="smtpFrom" label="Remitente" type="email" /><Text name="whatsappNumber" label="WhatsApp del gimnasio" placeholder="573001234567" hint="Con código de país, sin espacios. Se usa en la página pública y enlaces rápidos." /></div>
             </CardBody></Card>
+            <div className="mt-4"><NotificationsPanel /></div>
           </TabsContent>
           <TabsContent value="appearance">
             <Card><CardHeader title="Apariencia" /><CardBody className="grid gap-4 sm:grid-cols-2">

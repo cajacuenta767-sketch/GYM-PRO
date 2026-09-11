@@ -1,10 +1,14 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { configuration } from './config/configuration';
 import { DatabaseModule } from './database/database.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
+import { PermissionsGuard } from './common/guards/permissions.guard';
+import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -29,11 +33,20 @@ import { ReportsModule } from './modules/reports/reports.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { AccessModule } from './modules/access/access.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { BranchesModule } from './modules/branches/branches.module';
+import { RoutinesModule } from './modules/routines/routines.module';
+import { UploadsModule } from './modules/uploads/uploads.module';
+import { PublicModule } from './modules/public/public.module';
+import { PortalModule } from './modules/portal/portal.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration] }),
+    ScheduleModule.forRoot(),
+    ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 300 }]),
     DatabaseModule,
+    NotificationsModule,
     AuthModule,
     UsersModule,
     DashboardModule,
@@ -57,10 +70,18 @@ import { AccessModule } from './modules/access/access.module';
     SubscriptionsModule,
     SettingsModule,
     AccessModule,
+    BranchesModule,
+    RoutinesModule,
+    UploadsModule,
+    PublicModule,
+    PortalModule,
   ],
   providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_GUARD, useClass: PermissionsGuard },
+    { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
   ],
 })
 export class AppModule {}

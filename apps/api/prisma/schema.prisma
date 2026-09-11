@@ -1,0 +1,528 @@
+// ─────────────────────────────────────────────────────────────
+//  GYM PRO · Modelo de datos
+//  Desarrollo: SQLite (sin configuración). Producción: PostgreSQL
+//  (cambiar provider y DATABASE_URL). Los campos "tipo/estado" se
+//  guardan como String validado en los DTOs para mantener el
+//  esquema portable entre ambos motores.
+// ─────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────── Seguridad y acceso ─────────────
+
+model User {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  password    String
+  name        String
+  role        String    @default("STAFF") // ADMIN | STAFF | ACCOUNTANT | MEMBER
+  roleId      String?
+  avatarUrl   String?
+  isActive    Boolean   @default(true)
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  accessRole   Role?        @relation(fields: [roleId], references: [id])
+  member       Member?
+  staff        Staff?
+  sentMessages Message[]    @relation("MessageSender")
+  inbox        Message[]    @relation("MessageRecipient")
+  auditLogs    AuditLog[]
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  permissions String   @default("[]") // JSON: ["members.read","members.write",...]
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users User[]
+}
+
+model AccessLog {
+  id       String   @id @default(cuid())
+  memberId String?
+  method   String   @default("QR") // QR | MANUAL | CARD | PIN
+  allowed  Boolean  @default(true)
+  reason   String?
+  gate     String?  // Entrada principal, Torniquete 2...
+  at       DateTime @default(now())
+
+  member Member? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String   // CREATE | UPDATE | DELETE | LOGIN
+  entity    String
+  entityId  String?
+  detail    String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+// ───────────── Membresías y miembros ─────────────
+
+model MembershipPlan {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  durationDays    Int
+  price           Float
+  registrationFee Float    @default(0)
+  installments    Int      @default(1)
+  color           String   @default("#B8E63C")
+  iconUrl         String?
+  benefits        String   @default("[]") // JSON
+  stripePriceId   String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  members       Member[]
+  subscriptions Subscription[]
+  activities    MembershipPlanActivity[]
+}
+
+model MembershipPlanActivity {
+  planId     String
+  activityId String
+
+  plan     MembershipPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  activity Activity       @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@id([planId, activityId])
+}
+
+model Member {
+  id               String    @id @default(cuid())
+  code             String    @unique // M30824
+  userId           String?   @unique
+  firstName        String
+  lastName         String
+  email            String?
+  phone            String?
+  address          String?
+  birthDate        DateTime?
+  gender           String?   // FEMENINO | MASCULINO | OTRO
+  photoUrl         String?
+  username         String?
+  planId           String?
+  trainerId        String?
+  interestArea     String?
+  status           String    @default("ACTIVE") // ACTIVE | INACTIVE | SUSPENDED | EXPIRED
+  joinDate         DateTime  @default(now())
+  expiresAt        DateTime?
+  emergencyContact String?
+  notes            String?
+  qrToken          String    @unique @default(cuid())
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user          User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  plan          MembershipPlan?    @relation(fields: [planId], references: [id], onDelete: SetNull)
+  trainer       Staff?             @relation(fields: [trainerId], references: [id], onDelete: SetNull)
+  measurements  Measurement[]
+  subscriptions Subscription[]
+  payments      Payment[]
+  attendance    Attendance[]
+  bookings      Booking[]
+  groups        GroupMember[]
+  classes       MemberClass[]
+  nutrition     NutritionSchedule[]
+  sales         Sale[]
+  accessLogs    AccessLog[]
+  eventRsvps    EventRsvp[]
+}
+
+model Measurement {
+  id         String   @id @default(cuid())
+  memberId   String
+  type       String   // WEIGHT | WAIST | HEIGHT | BODY_FAT | CHEST | HIPS | ARM
+  value      Float
+  unit       String   @default("kg")
+  note       String?
+  measuredAt DateTime @default(now())
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
+
+model Subscription {
+  id        String   @id @default(cuid())
+  memberId  String
+  planId    String
+  startDate DateTime
+  endDate   DateTime
+  price     Float
+  status    String   @default("ACTIVE") // ACTIVE | EXPIRED | CANCELLED | PENDING
+  notes     String?
+  createdAt DateTime @default(now())
+
+  member   Member         @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  plan     MembershipPlan @relation(fields: [planId], references: [id])
+  payments Payment[]
+}
+
+// ───────────── Equipo ─────────────
+
+model Staff {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  userId    String?   @unique
+  firstName String
+  lastName  String
+  email     String?
+  phone     String?
+  role      String    @default("TRAINER") // TRAINER | RECEPTIONIST | MANAGER | NUTRITIONIST | ACCOUNTANT | CLEANING
+  specialty String?
+  photoUrl  String?
+  hireDate  DateTime  @default(now())
+  salary    Float?
+  bio       String?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user       User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  members    Member[]
+  classes    GymClass[]
+  activities Activity[]
+  sales      Sale[]
+  nutrition  NutritionSchedule[]
+}
+
+// ───────────── Grupos ─────────────
+
+model Group {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  imageUrl    String?
+  color       String   @default("#7C5CFC")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members GroupMember[]
+}
+
+model GroupMember {
+  groupId  String
+  memberId String
+  joinedAt DateTime @default(now())
+
+  group  Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, memberId])
+}
+
+// ───────────── Clases, reservas y nutrición ─────────────
+
+model GymClass {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  trainerId   String?
+  location    String?
+  capacity    Int      @default(20)
+  bookingFee  Float    @default(0)
+  color       String   @default("#22B8CF")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  trainer   Staff?          @relation(fields: [trainerId], references: [id], onDelete: SetNull)
+  schedules ClassSchedule[]
+  bookings  Booking[]
+  members   MemberClass[]
+}
+
+model ClassSchedule {
+  id        String @id @default(cuid())
+  classId   String
+  dayOfWeek Int    // 0 = Domingo ... 6 = Sábado
+  startTime String // "09:15"
+  endTime   String // "11:45"
+
+  class    GymClass  @relation(fields: [classId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+}
+
+model MemberClass {
+  memberId String
+  classId  String
+
+  member Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  class  GymClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@id([memberId, classId])
+}
+
+model Booking {
+  id         String   @id @default(cuid())
+  memberId   String
+  classId    String
+  scheduleId String?
+  date       DateTime
+  status     String   @default("CONFIRMED") // CONFIRMED | CANCELLED | ATTENDED | NO_SHOW
+  paid       Boolean  @default(false)
+  amount     Float    @default(0)
+  createdAt  DateTime @default(now())
+
+  member   Member         @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  class    GymClass       @relation(fields: [classId], references: [id], onDelete: Cascade)
+  schedule ClassSchedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+}
+
+model NutritionSchedule {
+  id             String   @id @default(cuid())
+  memberId       String
+  nutritionistId String?
+  dayOfWeek      Int
+  mealType       String   // BREAKFAST | SNACK_AM | LUNCH | SNACK_PM | DINNER
+  description    String
+  calories       Int?
+  protein        Int?
+  carbs          Int?
+  fats           Int?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  member       Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  nutritionist Staff? @relation(fields: [nutritionistId], references: [id], onDelete: SetNull)
+}
+
+// ───────────── Actividades y ejercicios ─────────────
+
+model Activity {
+  id          String   @id @default(cuid())
+  name        String
+  category    String
+  trainerId   String?
+  description String?
+  durationMin Int?
+  calories    Int?
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  trainer Staff?                   @relation(fields: [trainerId], references: [id], onDelete: SetNull)
+  plans   MembershipPlanActivity[]
+}
+
+model ExerciseCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  muscleGroup String?
+  createdAt   DateTime @default(now())
+
+  exercises Exercise[]
+}
+
+model Exercise {
+  id          String   @id @default(cuid())
+  name        String
+  categoryId  String?
+  description String?
+  difficulty  String   @default("INTERMEDIATE") // BEGINNER | INTERMEDIATE | ADVANCED
+  sets        Int?
+  reps        Int?
+  restSeconds Int?
+  equipment   String?
+  videoUrl    String?
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category ExerciseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+}
+
+// ───────────── Tienda ─────────────
+
+model ProductCategory {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  products Product[]
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  sku         String   @unique
+  categoryId  String?
+  description String?
+  price       Float
+  cost        Float    @default(0)
+  stock       Int      @default(0)
+  minStock    Int      @default(5)
+  imageUrl    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category  ProductCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  saleItems SaleItem[]
+}
+
+model Sale {
+  id            String   @id @default(cuid())
+  number        String   @unique
+  memberId      String?
+  staffId       String?
+  subtotal      Float
+  discount      Float    @default(0)
+  tax           Float    @default(0)
+  total         Float
+  paymentMethod String   @default("CASH") // CASH | CARD | TRANSFER
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  member Member?    @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  staff  Staff?     @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  items  SaleItem[]
+}
+
+model SaleItem {
+  id        String @id @default(cuid())
+  saleId    String
+  productId String
+  quantity  Int
+  unitPrice Float
+  total     Float
+
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+}
+
+// ───────────── Eventos y asistencia ─────────────
+
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  type        String   @default("EVENT") // EVENT | COMPETITION | WORKSHOP | HOLIDAY
+  startsAt    DateTime
+  endsAt      DateTime?
+  location    String?
+  capacity    Int?
+  fee         Float    @default(0)
+  imageUrl    String?
+  color       String   @default("#FF7A59")
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rsvps EventRsvp[]
+}
+
+model EventRsvp {
+  eventId  String
+  memberId String
+  status   String   @default("GOING") // GOING | MAYBE | DECLINED
+  at       DateTime @default(now())
+
+  event  Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, memberId])
+}
+
+model Attendance {
+  id       String    @id @default(cuid())
+  memberId String
+  checkIn  DateTime  @default(now())
+  checkOut DateTime?
+  method   String    @default("QR") // QR | MANUAL | CARD
+  note     String?
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
+
+// ───────────── Pagos ─────────────
+
+model Payment {
+  id             String    @id @default(cuid())
+  invoiceNumber  String    @unique
+  memberId       String
+  subscriptionId String?
+  concept        String
+  amount         Float
+  method         String    @default("CASH") // CASH | CARD | TRANSFER | STRIPE
+  status         String    @default("PAID") // PAID | PENDING | FAILED | REFUNDED
+  reference      String?
+  notes          String?
+  paidAt         DateTime  @default(now())
+  dueDate        DateTime?
+  createdAt      DateTime  @default(now())
+
+  member       Member        @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+}
+
+// ───────────── Comunicación ─────────────
+
+model Message {
+  id          String    @id @default(cuid())
+  senderId    String
+  recipientId String
+  subject     String
+  body        String
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  sender    User @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient User @relation("MessageRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+}
+
+model Newsletter {
+  id              String    @id @default(cuid())
+  title           String
+  subject         String
+  content         String
+  audience        String    @default("ALL") // ALL | MEMBERS | STAFF | ACTIVE_MEMBERS | EXPIRED_MEMBERS
+  status          String    @default("DRAFT") // DRAFT | SCHEDULED | SENT
+  scheduledAt     DateTime?
+  sentAt          DateTime?
+  recipientsCount Int       @default(0)
+  openRate        Float?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Notice {
+  id        String    @id @default(cuid())
+  title     String
+  content   String
+  type      String    @default("INFO") // INFO | WARNING | URGENT | PROMO
+  audience  String    @default("ALL")
+  isPinned  Boolean   @default(false)
+  startsAt  DateTime  @default(now())
+  endsAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// ───────────── Configuración ─────────────
+
+model Setting {
+  key       String   @id
+  value     String
+  group     String   @default("general") // general | billing | notifications | appearance | access
+  updatedAt DateTime @updatedAt
+}

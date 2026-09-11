@@ -1,0 +1,34 @@
+# Dependencias
+node_modules/
+
+# Builds
+dist/
+build/
+.vite/
+
+# Entorno
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Base de datos local (SQLite)
+apps/api/prisma/*.db
+apps/api/prisma/*.db-journal
+apps/api/prisma/dev.db*
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Uploads locales
+apps/api/uploads/

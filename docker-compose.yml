@@ -1,6 +1,7 @@
-# PostgreSQL para producción o pruebas. Uso:
-#   docker compose up -d
-#   DATABASE_URL="postgresql://gympro:gympro@localhost:5432/gympro?schema=public"
+# Despliegue completo: PostgreSQL + API + web (nginx).
+#   docker compose up -d --build
+#   docker compose exec api npx prisma db seed     # datos de demostración (opcional)
+# La web queda en http://localhost:8080 y la API en http://localhost:8080/api/v1
 services:
   db:
     image: postgres:16-alpine
@@ -9,10 +10,44 @@ services:
       POSTGRES_USER: gympro
       POSTGRES_PASSWORD: gympro
       POSTGRES_DB: gympro
-    ports:
-      - "5432:5432"
     volumes:
       - gympro_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gympro"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Recuerda cambiar provider a "postgresql" en prisma/schema.prisma y regenerar migraciones (ver README)
+      DATABASE_URL: postgresql://gympro:gympro@db:5432/gympro?schema=public
+      JWT_SECRET: cambia-esta-clave
+      JWT_EXPIRES_IN: 8h
+      CORS_ORIGIN: http://localhost:8080
+      WEB_URL: http://localhost:8080
+      LOGIN_RATE_LIMIT: 10
+    volumes:
+      - gympro_uploads:/app/apps/api/uploads
+    ports:
+      - "4000:4000"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    depends_on: [api]
+    ports:
+      - "8080:80"
 
 volumes:
   gympro_pg:
+  gympro_uploads:

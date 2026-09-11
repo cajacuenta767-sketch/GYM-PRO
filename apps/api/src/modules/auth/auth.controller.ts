@@ -12,10 +12,10 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Public()
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ default: { limit: Number(process.env.LOGIN_RATE_LIMIT ?? 10), ttl: 60_000 } })
   @Post('login')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Iniciar sesión (máx. 5 intentos por minuto)' })
+  @ApiOperation({ summary: 'Iniciar sesión (límite de intentos por minuto configurable con LOGIN_RATE_LIMIT)' })
   login(@Body() dto: LoginDto, @Headers('user-agent') ua?: string) {
     return this.auth.login(dto, ua);
   }

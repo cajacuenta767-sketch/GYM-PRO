@@ -23,6 +23,8 @@ export interface FieldConfig {
   /** Sección visual (título separador antes del campo). */
   section?: string;
   emptyOption?: string;
+  /** Valor inicial cuando no hay datos (formulario de creación). */
+  defaultValue?: any;
   /** Render propio para type: 'custom' (recibe valor y onChange). */
   render?: (value: any, onChange: (v: any) => void) => React.ReactNode;
 }
@@ -156,7 +158,7 @@ export function ChipMultiSelect({ options, value, onChange }: { options: Option[
 function buildDefaults(fields: FieldConfig[], values?: Record<string, any>) {
   const out: Record<string, any> = {};
   for (const f of fields) {
-    const v = values?.[f.name];
+    const v = values?.[f.name] ?? (values ? undefined : f.defaultValue);
     if (f.type === 'switch') out[f.name] = v ?? false;
     else if (f.type === 'multiselect') out[f.name] = Array.isArray(v) ? v : [];
     else if (f.type === 'custom') out[f.name] = v ?? null;

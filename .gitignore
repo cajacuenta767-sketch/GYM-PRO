@@ -16,6 +16,8 @@ build/
 apps/api/prisma/*.db
 apps/api/prisma/*.db-journal
 apps/api/prisma/dev.db*
+apps/api/prisma/test.db*
+apps/api/test.db*
 
 # Logs
 *.log
@@ -32,3 +34,9 @@ Thumbs.db
 
 # Uploads locales
 apps/api/uploads/
+test.db
+
+# Playwright
+apps/web/e2e/.auth/
+apps/web/test-results/
+apps/web/playwright-report/

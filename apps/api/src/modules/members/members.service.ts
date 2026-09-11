@@ -222,10 +222,11 @@ export class MembersService {
     return 'nombre,apellidos,correo,telefono,genero,nacimiento,plan,direccion,estado\nPaola,Restrepo Vélez,paola@gmail.com,+57 300 000 0000,F,2001-08-01,Miembro Oro,Calle 24 C 38,ACTIVE\n';
   }
 
+  /** Siguiente código libre: máximo numérico existente + 1. */
   private async nextCode() {
-    const last = await this.prisma.member.findFirst({ orderBy: { createdAt: 'desc' }, select: { code: true } });
-    const n = last ? parseInt(last.code.replace(/\D/g, ''), 10) + 1 : 30001;
-    return `M${n}`;
+    const codes = await this.prisma.member.findMany({ select: { code: true } });
+    const max = codes.reduce((m, c) => Math.max(m, parseInt(c.code.replace(/\D/g, '') || '0', 10)), 30000);
+    return `M${max + 1}`;
   }
 
   private serializeDetail(member: any) {

@@ -9,14 +9,13 @@
     "start": "node dist/main.js",
     "start:prod": "node dist/main.js",
     "lint": "eslint \"src/**/*.ts\" --max-warnings=0",
-    "test": "jest --config jest.config.js",
+    "test": "jest --config test/jest-e2e.config.js --runInBand",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:seed": "ts-node --transpile-only prisma/seed.ts",
     "db:reset": "prisma migrate reset --force",
-    "db:studio": "prisma studio",
-    "test:e2e": "jest --config test/jest-e2e.config.js --runInBand"
+    "db:studio": "prisma studio"
   },
   "prisma": {
     "seed": "ts-node --transpile-only prisma/seed.ts"

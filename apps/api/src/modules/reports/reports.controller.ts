@@ -16,4 +16,5 @@ export class ReportsController {
   @Get('attendance') @ApiQuery({ name: 'days', required: false }) attendance(@Query('days') days?: string) { return this.service.attendance(days ? Number(days) : 30); }
   @Get('classes') classes() { return this.service.classes(); }
   @Get('store') store() { return this.service.store(); }
+  @Get('cash') @ApiQuery({ name: 'date', required: false }) cash(@Query('date') date?: string) { return this.service.cash(date); }
 }

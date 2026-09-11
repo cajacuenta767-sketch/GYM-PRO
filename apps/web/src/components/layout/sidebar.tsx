@@ -15,6 +15,8 @@ export function Sidebar() {
   const mobileOpen = useUiStore((s) => s.mobileNavOpen);
   const setMobile = useUiStore((s) => s.setMobileNav);
   const location = useLocation();
+  const can = useAuthStore((s) => s.can);
+  const hasStaff = useAuthStore((s) => !!s.user?.staff);
 
   useEffect(() => { setMobile(false); }, [location.pathname, setMobile]);
 
@@ -34,7 +36,7 @@ export function Sidebar() {
 
       {/* Navegación */}
       <nav className="flex-1 overflow-y-auto px-3 pb-4 scrollbar-thin">
-        {NAV.map((section) => (
+        {NAV.filter((section) => section.items.some((i) => (!i.permission || can(i.permission)) && (!i.requiresStaff || hasStaff))).map((section) => (
           <div key={section.title} className="mt-4 first:mt-1">
             {!collapsed && <p className="mb-1.5 px-3 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-side-ink-2/80">{section.title}</p>}
             <ul className="space-y-0.5">
@@ -68,12 +70,14 @@ export function Sidebar() {
 function NavEntry({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
   const location = useLocation();
   const can = useAuthStore((s) => s.can);
+  const hasStaff = useAuthStore((s) => !!s.user?.staff);
   const isActive = item.to === '/' ? location.pathname === '/' : location.pathname === item.to || item.children?.some((c) => location.pathname === c.to || location.pathname.startsWith(c.to + '/')) || location.pathname.startsWith(item.to + '/');
   const [open, setOpen] = useState(!!isActive);
   useEffect(() => { if (isActive) setOpen(true); }, [isActive]);
 
   const { data: unread } = useQuery({ queryKey: ['messages', 'unread-count'], queryFn: () => get<{ count: number }>('/messages/unread-count'), enabled: item.badge === 'messages', refetchInterval: 60_000 });
   if (item.permission && !can(item.permission)) return null;
+  if (item.requiresStaff && !hasStaff) return null;
   const Icon = item.icon;
 
   if (collapsed) {

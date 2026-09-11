@@ -97,6 +97,29 @@ export class ReportsService {
     return items.map((i) => ({ product: products.find((p) => p.id === i.productId)?.name ?? '—', stock: products.find((p) => p.id === i.productId)?.stock ?? 0, quantity: i._sum.quantity ?? 0, total: round(i._sum.total ?? 0) }));
   }
 
+  /** Caja del día: cobros de membresías y ventas de tienda por método de pago. */
+  async cash(dateStr?: string) {
+    const day = dateStr ? new Date(`${dateStr}T12:00:00`) : new Date();
+    const from = startOfDay(day), to = new Date(from.getTime() + 86_400_000 - 1);
+    const [payments, sales] = await Promise.all([
+      this.prisma.payment.findMany({ where: { status: 'PAID', paidAt: { gte: from, lte: to } }, include: { member: { select: { firstName: true, lastName: true, code: true } } }, orderBy: { paidAt: 'asc' } }),
+      this.prisma.sale.findMany({ where: { createdAt: { gte: from, lte: to } }, include: { member: { select: { firstName: true, lastName: true } }, items: { include: { product: { select: { name: true } } } } }, orderBy: { createdAt: 'asc' } }),
+    ]);
+    const byMethod: Record<string, { memberships: number; store: number }> = {};
+    for (const p of payments) { byMethod[p.method] ??= { memberships: 0, store: 0 }; byMethod[p.method].memberships += p.amount; }
+    for (const s of sales) { byMethod[s.paymentMethod] ??= { memberships: 0, store: 0 }; byMethod[s.paymentMethod].store += s.total; }
+    const memberships = round(payments.reduce((a, p) => a + p.amount, 0));
+    const store = round(sales.reduce((a, s) => a + s.total, 0));
+    return {
+      date: from.toISOString().slice(0, 10), memberships, store, total: round(memberships + store), count: payments.length + sales.length,
+      byMethod: Object.entries(byMethod).map(([method, v]) => ({ method, memberships: round(v.memberships), store: round(v.store), total: round(v.memberships + v.store) })),
+      movements: [
+        ...payments.map((p) => ({ at: p.paidAt, kind: 'PAYMENT', ref: p.invoiceNumber, who: `${p.member.firstName} ${p.member.lastName}`, concept: p.concept, method: p.method, amount: p.amount })),
+        ...sales.map((s) => ({ at: s.createdAt, kind: 'SALE', ref: s.number, who: s.member ? `${s.member.firstName} ${s.member.lastName}` : 'Público', concept: s.items.map((i) => `${i.quantity}× ${i.product.name}`).join(', '), method: s.paymentMethod, amount: s.total })),
+      ].sort((a, b) => a.at.getTime() - b.at.getTime()),
+    };
+  }
+
   /** Resumen ejecutivo para la cabecera de reportes. */
   async summary() {
     const now = new Date();

@@ -92,7 +92,7 @@ export default function LoginPage() {
             <Button type="submit" size="lg" className="w-full" loading={login.isPending}>Entrar</Button>
           </form>
 
-          <div className="mt-8">
+          {(import.meta.env.DEV || import.meta.env.VITE_SHOW_DEMO_ACCOUNTS === 'true') && <div className="mt-8">
             <p className="text-[11.5px] font-semibold uppercase tracking-[0.1em] text-ink-3">Cuentas de demostración</p>
             <div className="mt-2 grid grid-cols-2 gap-2">
               {DEMO.map((d) => (
@@ -103,7 +103,7 @@ export default function LoginPage() {
                 </button>
               ))}
             </div>
-          </div>
+          </div>}
         </div>
       </div>
     </div>

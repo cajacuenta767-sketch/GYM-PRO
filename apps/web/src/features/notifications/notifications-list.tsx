@@ -1,7 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Bell, Cake, CalendarClock, CheckCheck, CreditCard, Package, Ticket } from 'lucide-react';
-import { get, list, patch } from '@/lib/api';
+import { patch } from '@/lib/api';
+import { useNotifications } from './hooks';
 import { cn } from '@/lib/utils';
 import { fmtRelative } from '@/lib/format';
 import { Button, Card, EmptyState, Skeleton } from '@/components/ui';
@@ -10,10 +11,6 @@ export interface AppNotification { id: string; type: string; title: string; body
 
 const ICONS: Record<string, React.ReactNode> = { BOOKING: <Ticket />, PAYMENT: <CreditCard />, EXPIRING: <CalendarClock />, BIRTHDAY: <Cake />, STOCK: <Package /> };
 const TONES: Record<string, string> = { BOOKING: 'bg-info-soft text-info-ink', PAYMENT: 'bg-success-soft text-success-ink', EXPIRING: 'bg-warning-soft text-warning-ink', BIRTHDAY: 'bg-[#FCE7F3] text-[#BE185D]', STOCK: 'bg-danger-soft text-danger-ink' };
-
-export function useNotifications(limit = 30) {
-  return useQuery({ queryKey: ['notifications', 'list', limit], queryFn: () => list<AppNotification>('/notifications', { limit }), refetchInterval: 60_000 });
-}
 
 export function NotificationsList({ compact, linkBase = '' }: { compact?: boolean; linkBase?: string }) {
   const qc = useQueryClient();
@@ -52,8 +49,4 @@ export function NotificationsList({ compact, linkBase = '' }: { compact?: boolea
       {body}
     </Card>
   );
-}
-
-export function useUnreadCount() {
-  return useQuery({ queryKey: ['notifications', 'unread-count'], queryFn: () => get<{ count: number }>('/notifications/unread-count'), refetchInterval: 60_000 });
 }

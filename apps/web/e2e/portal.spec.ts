@@ -21,7 +21,7 @@ test.describe('Portal del miembro', () => {
     await expect(slot).toBeVisible();
     await slot.click();
     await page.getByRole('button', { name: 'Reservar cupo' }).click();
-    await expect(page.getByText(/Reserva confirmada|lista de espera|ya tiene una reserva/)).toBeVisible();
+    await expect(page.locator('[data-sonner-toast]').filter({ hasText: /Reserva confirmada|lista de espera|ya tiene una reserva/ })).toBeVisible();
   });
 });
 

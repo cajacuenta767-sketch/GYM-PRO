@@ -44,7 +44,7 @@ import { PortalModule } from './modules/portal/portal.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [configuration] }),
     ScheduleModule.forRoot(),
-    ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 300 }]),
+    ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 1000 }]),
     DatabaseModule,
     NotificationsModule,
     AuthModule,

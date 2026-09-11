@@ -19,11 +19,8 @@ export class PaymentsController {
   checkout(@Body() dto: CheckoutDto) { return this.service.createCheckout(dto); }
 
   @Post('checkout/confirm') @HttpCode(200) @PortalAccess() @ApiOperation({ summary: 'Confirmar pago en línea al volver de la pasarela' })
-  async confirm(@Body() dto: ConfirmCheckoutDto, @CurrentUser() user: JwtUser) {
-    const r = await this.service.confirmCheckout(dto.providerRef, 'RETURN');
-    // Un miembro solo puede confirmar sus propios pagos
-    if (user.role === 'MEMBER' && r.payment.memberId !== user.memberId) return { forbidden: true };
-    return r;
+  confirm(@Body() dto: ConfirmCheckoutDto, @CurrentUser() user: JwtUser) {
+    return this.service.confirmCheckout(dto.providerRef, 'RETURN', user);
   }
 
   @Public() @Post('webhooks/stripe') @HttpCode(200)

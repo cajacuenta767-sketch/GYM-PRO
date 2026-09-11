@@ -1,24 +1,15 @@
 import { useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Bell, CalendarDays, Dumbbell, Home, LogOut, Moon, MoreHorizontal, Sun, Ticket, TrendingUp, User, Wallet, Apple, CalendarRange } from 'lucide-react';
+import { Bell, LogOut, Moon, MoreHorizontal, Sun, User } from 'lucide-react';
 import { get, post } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth.store';
 import { applyTheme, useUiStore } from '@/stores/ui.store';
 import { Avatar, Button, Dropdown, DropdownContent, DropdownItem, DropdownLabel, DropdownSeparator, DropdownTrigger } from '@/components/ui';
 import { Logo } from '@/components/layout/sidebar';
+import { PORTAL_NAV } from './portal-nav';
 
-export const PORTAL_NAV = [
-  { to: '/portal', label: 'Inicio', icon: Home, end: true },
-  { to: '/portal/clases', label: 'Clases', icon: CalendarDays },
-  { to: '/portal/reservas', label: 'Reservas', icon: Ticket },
-  { to: '/portal/rutina', label: 'Mi rutina', icon: Dumbbell },
-  { to: '/portal/nutricion', label: 'Nutrición', icon: Apple },
-  { to: '/portal/progreso', label: 'Progreso', icon: TrendingUp },
-  { to: '/portal/pagos', label: 'Pagos', icon: Wallet },
-  { to: '/portal/eventos', label: 'Eventos', icon: CalendarRange },
-];
 const MOBILE_TABS = PORTAL_NAV.slice(0, 4);
 
 export function PortalShell() {

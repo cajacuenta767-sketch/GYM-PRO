@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Res } from '@nestjs/common';
+import type { Response } from 'express';
 import { ModuleKey } from '../../common/decorators';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { PaginationDto } from '../../common/dto';
@@ -19,6 +20,7 @@ export class ProductsController {
   @Delete('categories/:id') removeCategory(@Param('id') id: string) { return this.service.removeCategory(id); }
 
   @Get('sales') sales(@Query() query: PaginationDto) { return this.service.findSales(query); }
+  @Get('sales/:id/receipt.pdf') async receipt(@Param('id') id: string, @Res() res: Response) { const { buffer, filename } = await this.service.receiptPdf(id); res.setHeader('Content-Type', 'application/pdf'); res.setHeader('Content-Disposition', `inline; filename="${filename}"`); res.send(buffer); }
   @Get('sales/:id') sale(@Param('id') id: string) { return this.service.findSale(id); }
   @Post('sales') createSale(@Body() dto: CreateSaleDto) { return this.service.createSale(dto); }
 

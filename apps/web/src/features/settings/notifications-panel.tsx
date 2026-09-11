@@ -5,12 +5,13 @@ import { toast } from 'sonner';
 import { get, list, post } from '@/lib/api';
 import { fmtDateTime } from '@/lib/format';
 import { NOTIFICATION_LOG_STATUS } from '@/lib/labels';
-import { Badge, Button, Card, CardBody, CardHeader, Input, StatusBadge } from '@/components/ui';
+import { Badge, Button, Card, CardBody, CardHeader, Dialog, Input, StatusBadge } from '@/components/ui';
 
 /** Herramientas de notificaciones: correo de prueba, ejecución de la tarea diaria y registro de envíos. */
 export function NotificationsPanel() {
   const qc = useQueryClient();
   const [to, setTo] = useState('');
+  const [preview, setPreview] = useState<any>(null);
   const { data: logs } = useQuery({ queryKey: ['notifications', 'logs'], queryFn: () => list<any>('/notifications/logs', { limit: 12 }) });
   const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: () => get<Record<string, any>>('/settings') });
   const test = useMutation({ mutationFn: () => post<any>('/notifications/test-email', { to }), onSuccess: (r) => { toast.success(r.status === 'SENT' ? 'Correo enviado' : 'Sin SMTP configurado: se guardó una vista previa'); qc.invalidateQueries({ queryKey: ['notifications', 'logs'] }); }, onError: (e: Error) => toast.error(e.message) });
@@ -29,10 +30,13 @@ export function NotificationsPanel() {
       <Card>
         <CardHeader title="Registro de envíos" description="Últimos correos enviados o generados en vista previa" />
         <ul className="divide-y divide-line">
-          {logs?.data.map((l: any) => <li key={l.id} className="flex items-center gap-3 px-5 py-2.5 text-[13px]"><span className="w-36 shrink-0 text-ink-3">{fmtDateTime(l.createdAt)}</span><span className="min-w-0 flex-1 truncate"><b>{l.recipient}</b> · {l.subject}</span><Badge>{l.template ?? l.channel}</Badge><StatusBadge value={l.status} map={NOTIFICATION_LOG_STATUS} /></li>)}
+          {logs?.data.map((l: any) => <li key={l.id} className="flex items-center gap-3 px-5 py-2.5 text-[13px]"><span className="w-36 shrink-0 text-ink-3">{fmtDateTime(l.createdAt)}</span><span className="min-w-0 flex-1 truncate"><b>{l.recipient}</b> · {l.subject}</span><Badge>{l.template ?? l.channel}</Badge><StatusBadge value={l.status} map={NOTIFICATION_LOG_STATUS} /><Button variant="ghost" size="sm" onClick={() => setPreview(l)}>Ver</Button></li>)}
           {logs && logs.data.length === 0 && <li className="px-5 py-6 text-center text-[13px] text-ink-3">Sin envíos todavía.</li>}
         </ul>
       </Card>
+      <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)} title={preview?.subject ?? 'Correo'} description={preview ? `Para ${preview.recipient} · ${fmtDateTime(preview.createdAt)}` : ''} size="lg">
+        <iframe title="Vista previa" srcDoc={preview?.body ?? ''} className="h-[520px] w-full rounded-xl border border-line bg-white" sandbox="" />
+      </Dialog>
     </div>
   );
 }

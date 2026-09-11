@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Put } from '@nestjs/common';
+import { Body, Controller, Get, Header, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ModuleKey, Roles } from '../../common/decorators';
 import { UpdateSettingsDto } from './dto/settings.dto';
@@ -12,5 +12,6 @@ export class SettingsController {
   constructor(private readonly service: SettingsService) {}
 
   @Get() getAll() { return this.service.getAll(); }
+  @Get('backup') @Roles('ADMIN') @Header('Content-Disposition', 'attachment; filename="gympro-backup.json"') backup() { return this.service.backup(); }
   @Put() @Roles('ADMIN') update(@Body() dto: UpdateSettingsDto) { return this.service.update(dto.values); }
 }

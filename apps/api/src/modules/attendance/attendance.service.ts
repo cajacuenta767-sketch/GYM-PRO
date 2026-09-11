@@ -65,7 +65,13 @@ export class AttendanceService {
       data: { memberId: member.id, method: dto.method ?? 'QR', note: dto.note, checkIn: now },
       include,
     });
-    return { action: 'CHECK_IN', attendance: created };
+    // Si tiene una reserva confirmada en las próximas dos horas (o pasada hace menos de una), queda como asistida
+    const booking = await this.prisma.booking.findFirst({
+      where: { memberId: member.id, status: 'CONFIRMED', date: { gte: new Date(now.getTime() - 60 * 60000), lte: new Date(now.getTime() + 120 * 60000) } },
+      include: { class: { select: { name: true } } },
+    });
+    if (booking) await this.prisma.booking.update({ where: { id: booking.id }, data: { status: 'ATTENDED' } });
+    return { action: 'CHECK_IN', attendance: created, bookingAttended: booking ? { id: booking.id, className: booking.class.name } : null };
   }
 
   createManual(dto: ManualAttendanceDto) {
@@ -91,7 +97,9 @@ export class AttendanceService {
     const inside = rows.filter((r) => !r.checkOut).length;
     const byHour = Array.from({ length: 24 }, (_, h) => ({ hour: h, count: 0 }));
     rows.forEach((r) => byHour[r.checkIn.getHours()].count++);
-    return { total: rows.length, inside, byHour: byHour.filter((b) => b.hour >= 5 && b.hour <= 23), rows };
+    const cap = await this.prisma.setting.findUnique({ where: { key: 'maxCapacity' } });
+    const capacity = cap && Number(cap.value) > 0 ? Number(cap.value) : null;
+    return { total: rows.length, inside, capacity, occupancy: capacity ? Math.round((inside / capacity) * 100) : null, byHour: byHour.filter((b) => b.hour >= 5 && b.hour <= 23), rows };
   }
 
   async stats() {

@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import * as bcrypt from 'bcryptjs';
 import * as XLSX from 'xlsx';
 import { NotificationsService } from '../notifications/notifications.service';
+import { buildMemberCardPdf } from './member-card.pdf';
 import { PrismaService } from '../../database/prisma.service';
 import { paginate } from '../../common/utils';
 import { BulkMembersDto, CreateMeasurementDto, CreateMemberDto, QueryMembersDto, UpdateMemberDto } from './dto/member.dto';
@@ -157,6 +158,35 @@ export class MembersService {
       this.prisma.member.count({ where: { joinDate: { gte: new Date(now.getFullYear(), now.getMonth(), 1) } } }),
     ]);
     return { total, active, expired, expiringSoon, newThisMonth };
+  }
+
+  /** Carnet físico del miembro en PDF (tarjeta con QR). */
+  async cardPdf(id: string) {
+    const m = await this.prisma.member.findUniqueOrThrow({ where: { id }, include: { plan: true, branch: true } });
+    const gym = (await this.prisma.setting.findUnique({ where: { key: 'gymName' } }))?.value ?? 'GYM PRO';
+    const buffer = await buildMemberCardPdf({ gym, name: `${m.firstName} ${m.lastName}`, code: m.code, plan: m.plan?.name, expiresAt: m.expiresAt, qrToken: m.qrToken, branch: m.branch?.name, joinDate: m.joinDate });
+    return { buffer, filename: `carnet-${m.code}.pdf` };
+  }
+
+  /** Línea de tiempo: eventos relevantes del miembro ordenados por fecha. */
+  async timeline(id: string) {
+    const [audit, payments, subs, freezes, bookings, notifications] = await Promise.all([
+      this.prisma.auditLog.findMany({ where: { entityId: id }, include: { user: { select: { name: true } } }, orderBy: { createdAt: 'desc' }, take: 30 }),
+      this.prisma.payment.findMany({ where: { memberId: id }, orderBy: { paidAt: 'desc' }, take: 20 }),
+      this.prisma.subscription.findMany({ where: { memberId: id }, include: { plan: { select: { name: true } } }, orderBy: { startDate: 'desc' }, take: 20 }),
+      this.prisma.membershipFreeze.findMany({ where: { memberId: id }, orderBy: { startDate: 'desc' }, take: 10 }),
+      this.prisma.booking.findMany({ where: { memberId: id, status: { in: ['ATTENDED', 'NO_SHOW', 'CANCELLED'] } }, include: { class: { select: { name: true } } }, orderBy: { date: 'desc' }, take: 15 }),
+      this.prisma.notification.findMany({ where: { memberId: id }, orderBy: { createdAt: 'desc' }, take: 15 }),
+    ]);
+    const items = [
+      ...audit.map((a) => ({ at: a.createdAt, type: 'AUDIT', title: `${a.action === 'CREATE' ? 'Registro creado' : a.action === 'UPDATE' ? 'Datos actualizados' : a.action} por ${a.user?.name ?? 'sistema'}`, detail: a.detail ?? '' })),
+      ...payments.map((p) => ({ at: p.paidAt, type: 'PAYMENT', title: `${p.status === 'PAID' ? 'Pago' : 'Pago pendiente'} · ${p.concept}`, detail: `${p.invoiceNumber} · ${p.amount}` })),
+      ...subs.map((s) => ({ at: s.startDate, type: 'SUBSCRIPTION', title: `Suscripción ${s.plan.name}`, detail: `${s.startDate.toLocaleDateString('es-CO')} → ${s.endDate.toLocaleDateString('es-CO')} · ${s.status}` })),
+      ...freezes.map((f) => ({ at: f.createdAt, type: 'FREEZE', title: `Congelación de ${f.days} días`, detail: f.reason ?? '' })),
+      ...bookings.map((b) => ({ at: b.date, type: 'BOOKING', title: `${b.class.name} · ${b.status === 'ATTENDED' ? 'asistió' : b.status === 'NO_SHOW' ? 'no asistió' : 'cancelada'}`, detail: '' })),
+      ...notifications.map((n) => ({ at: n.createdAt, type: 'NOTIFICATION', title: n.title, detail: n.body })),
+    ];
+    return items.sort((a, b) => b.at.getTime() - a.at.getTime()).slice(0, 60);
   }
 
   /** Acciones en lote sobre varios miembros. */

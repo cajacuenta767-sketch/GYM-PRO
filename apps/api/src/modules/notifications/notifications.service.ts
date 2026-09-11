@@ -109,7 +109,14 @@ export class NotificationsService {
   async runDaily() {
     const gym = await this.gymName();
     const now = new Date();
-    const result = { expiring: 0, birthdays: 0, lowStock: 0 };
+    const result = { expired: 0, unfrozen: 0, expiring: 0, birthdays: 0, lowStock: 0 };
+
+    // Vencimientos: miembros activos con fecha pasada (y no congelados) pasan a EXPIRED; igual las suscripciones
+    const expiredMembers = await this.prisma.member.updateMany({ where: { status: 'ACTIVE', expiresAt: { lt: startOfDay(now) }, OR: [{ frozenUntil: null }, { frozenUntil: { lt: now } }] }, data: { status: 'EXPIRED' } });
+    await this.prisma.subscription.updateMany({ where: { status: 'ACTIVE', endDate: { lt: startOfDay(now) } }, data: { status: 'EXPIRED' } });
+    result.expired = expiredMembers.count;
+    const unfrozen = await this.prisma.member.updateMany({ where: { frozenUntil: { lt: now } }, data: { frozenUntil: null } });
+    result.unfrozen = unfrozen.count;
 
     if ((await this.setting('notifyExpiring', 'true')) === 'true') {
       const days = Number(await this.setting('expiringDays', '7'));

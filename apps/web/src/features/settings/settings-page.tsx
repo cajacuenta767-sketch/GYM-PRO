@@ -6,7 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import { BranchesPanel } from './branches-panel';
 import { NotificationsPanel } from './notifications-panel';
 import { toast } from 'sonner';
-import { get, put } from '@/lib/api';
+import { download, get, put } from '@/lib/api';
+import { DatabaseBackup } from 'lucide-react';
 import { Button, Card, CardBody, CardHeader, Input, Label, PageHeader, Select, Skeleton, Switch, Tabs, TabsContent, TabsList, TabsTrigger, Textarea, Hint } from '@/components/ui';
 
 type Values = Record<string, any>;
@@ -47,6 +48,7 @@ export default function SettingsPage() {
               <div><Label>Idioma</Label><Select {...form.register('language')}><option value="es">Español</option><option value="en">English</option></Select></div>
               <div className="sm:col-span-2"><Label>Horario de atención</Label><Textarea rows={2} {...form.register('openingHours')} /></div>
             </CardBody></Card>
+            <Card className="mt-4"><CardHeader title="Copia de seguridad" description="Descarga todos los datos del sistema en un archivo JSON (sin contraseñas)." icon={<DatabaseBackup />} action={<Button type="button" variant="outline" onClick={() => download('/settings/backup', `gympro-backup-${new Date().toISOString().slice(0, 10)}.json`)}>Descargar copia</Button>} /></Card>
           </TabsContent>
           <TabsContent value="branches"><BranchesPanel /></TabsContent>
           <TabsContent value="billing">
@@ -76,6 +78,7 @@ export default function SettingsPage() {
               <Toggle name="qrCheckIn" label="Check-in por código QR" hint="Cada miembro tiene un QR único en su ficha." />
               <Text name="autoCheckOutMinutes" label="Salida automática (minutos)" type="number" hint="Cierra la visita si no se registra salida." />
               <Toggle name="allowExpiredGrace" label="Permitir acceso con membresía recién vencida" /><Text name="graceDays" label="Días de gracia" type="number" />
+              <Text name="maxCapacity" label="Aforo máximo (personas dentro a la vez)" type="number" hint="Vacío o 0 = sin límite. Se muestra en el panel de asistencia." />
             </CardBody></Card>
           </TabsContent>
         </div>

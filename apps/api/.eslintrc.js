@@ -8,6 +8,7 @@ module.exports = {
   ignorePatterns: ['.eslintrc.js', 'dist', 'prisma'],
   rules: {
     '@typescript-eslint/no-explicit-any': 'off',
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_', ignoreRestSiblings: true }],
     '@typescript-eslint/explicit-module-boundary-types': 'off',
   },
 };

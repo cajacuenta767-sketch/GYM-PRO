@@ -3,7 +3,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
-import { ArrowLeft, Cake, CalendarDays, ClipboardCheck, CreditCard, Dumbbell, Heart, KeyRound, Mail, MapPin, Pencil, Phone, Plus, QrCode, Snowflake, Trash2, User, UsersRound } from 'lucide-react';
+import { ArrowLeft, Cake, CalendarDays, ClipboardCheck, CreditCard, Dumbbell, Heart, History, IdCard, KeyRound, Mail, MapPin, MessageCircle, Pencil, Phone, Plus, QrCode, Snowflake, Trash2, User, UsersRound } from 'lucide-react';
+import { waLink } from '@/lib/utils';
 import { del, get, patch, post } from '@/lib/api';
 import { age, fmtDate, fmtDateTime, fmtMoney, fmtTime, daysUntil } from '@/lib/format';
 import { ATTENDANCE_METHOD, BOOKING_STATUS, DIFFICULTY, GENDER, MEAL_TYPE, MEASUREMENT_TYPE, MEMBER_STATUS, PAYMENT_METHOD, PAYMENT_STATUS, ROUTINE_GOAL, SUBSCRIPTION_STATUS, toOptions } from '@/lib/labels';
@@ -49,15 +50,16 @@ export default function MemberDetailPage() {
   const { data: m, isLoading } = useQuery({ queryKey: ['members', id], queryFn: () => get<MemberDetail>(`/members/${id}`) });
   const { data: nutrition } = useQuery({ queryKey: ['nutrition', 'weekly', id], queryFn: () => get<any[]>(`/nutrition/member/${id}/weekly`), enabled: !!id });
   const { data: routine } = useQuery({ queryKey: ['routines', 'member', id], queryFn: () => get<any>(`/routines/member/${id}/active`), enabled: !!id });
+  const { data: timeline } = useQuery({ queryKey: ['members', id, 'timeline'], queryFn: () => get<any[]>(`/members/${id}/timeline`), enabled: !!id });
   const refresh = () => { qc.invalidateQueries({ queryKey: ['members', id] }); qc.invalidateQueries({ queryKey: ['/members'] }); };
 
-  const mutate = (fn: (v: any) => Promise<any>, msg: string) => useMutation({ mutationFn: fn, onSuccess: () => { toast.success(msg); setDialog(null); refresh(); }, onError: (e: Error) => toast.error(e.message) });
-  const edit = mutate((v) => patch(`/members/${id}`, v), 'Miembro actualizado');
-  const addMeasure = mutate((v) => post(`/members/${id}/measurements`, v), 'Medición registrada');
-  const addSub = mutate((v) => post('/subscriptions', { ...v, memberId: id }), 'Suscripción registrada');
-  const addPay = mutate((v) => post('/payments', { ...v, memberId: id }), 'Pago registrado');
-  const freeze = mutate((v) => post(`/subscriptions/${freezeTarget}/freeze`, v), 'Membresía congelada');
-  const portalAccount = mutate((v) => post(`/members/${id}/portal-account`, v), 'Acceso al portal listo');
+  const useSave = (fn: (v: any) => Promise<any>, msg: string) => useMutation({ mutationFn: fn, onSuccess: () => { toast.success(msg); setDialog(null); refresh(); }, onError: (e: Error) => toast.error(e.message) });
+  const edit = useSave((v) => patch(`/members/${id}`, v), 'Miembro actualizado');
+  const addMeasure = useSave((v) => post(`/members/${id}/measurements`, v), 'Medición registrada');
+  const addSub = useSave((v) => post('/subscriptions', { ...v, memberId: id }), 'Suscripción registrada');
+  const addPay = useSave((v) => post('/payments', { ...v, memberId: id }), 'Pago registrado');
+  const freeze = useSave((v) => post(`/subscriptions/${freezeTarget}/freeze`, v), 'Membresía congelada');
+  const portalAccount = useSave((v) => post(`/members/${id}/portal-account`, v), 'Acceso al portal listo');
   const assignRoutine = useMutation({ mutationFn: (v: any) => post(`/routines/${v.routineId}/assign`, { memberId: id, startDate: v.startDate }), onSuccess: () => { toast.success('Rutina asignada'); setDialog(null); qc.invalidateQueries({ queryKey: ['routines'] }); }, onError: (e: Error) => toast.error(e.message) });
   const remove = useMutation({ mutationFn: () => del(`/members/${id}`), onSuccess: () => { toast.success('Miembro eliminado'); navigate('/miembros'); }, onError: (e: Error) => toast.error(e.message) });
   const removeMeasure = useMutation({ mutationFn: (mid: string) => del(`/members/${id}/measurements/${mid}`), onSuccess: refresh });
@@ -102,6 +104,8 @@ export default function MemberDetailPage() {
                 <Button size="sm" variant="secondary" onClick={() => setDialog('payment')}><CreditCard className="h-4 w-4" />Registrar pago</Button>
                 <Button size="sm" variant="outline" onClick={() => setDialog('edit')}><Pencil className="h-4 w-4" />Editar</Button>
                 <Button size="sm" variant="outline" onClick={() => setDialog('portal')}><KeyRound className="h-4 w-4" />{(m as any).user ? 'Portal activo' : 'Acceso al portal'}</Button>
+                <Button size="sm" variant="outline" onClick={() => download(`/members/${id}/card.pdf`, `carnet-${m.code}.pdf`, true)}><IdCard className="h-4 w-4" />Carnet PDF</Button>
+                {waLink(m.phone) && <a href={waLink(m.phone, `Hola ${m.firstName}, te escribimos desde el gimnasio.`)!} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#25D366] px-3 text-[12.5px] font-semibold text-white hover:opacity-90"><MessageCircle className="h-4 w-4" />WhatsApp</a>}
                 <Button size="sm" variant="ghost" className="text-danger-ink" onClick={() => setDialog('delete')}><Trash2 className="h-4 w-4" /></Button>
               </div>
             </div>
@@ -123,6 +127,7 @@ export default function MemberDetailPage() {
           <UnderlineTab value="reservas" count={m.bookings.length}>Reservas</UnderlineTab>
           <UnderlineTab value="nutricion">Nutrición</UnderlineTab>
           <UnderlineTab value="rutina">Rutina</UnderlineTab>
+          <UnderlineTab value="historial">Historial</UnderlineTab>
         </UnderlineTabsList>
 
         <TabsContent value="resumen" className="mt-5 grid gap-6 lg:grid-cols-2">
@@ -241,6 +246,25 @@ export default function MemberDetailPage() {
               </CardBody>
             </Card>
           ) : <Card><EmptyState icon={<Dumbbell />} title="Sin rutina asignada" description="Asigna una plantilla o crea una rutina personalizada desde Rutinas." action={<div className="flex gap-2"><Button onClick={() => setDialog('routine')}>Asignar plantilla</Button><Button variant="outline" onClick={() => navigate('/rutinas')}>Ir a Rutinas</Button></div>} /></Card>}
+        </TabsContent>
+        <TabsContent value="historial" className="mt-5">
+          <Card>
+            <CardHeader title="Línea de tiempo" description="Pagos, suscripciones, congelaciones, reservas, notificaciones y cambios registrados" icon={<History />} />
+            <CardBody className="pt-0">
+              {!timeline?.length ? <EmptyState title="Sin eventos todavía" /> : (
+                <ol className="relative ml-3 border-l border-line">
+                  {timeline.map((t, i) => (
+                    <li key={i} className="mb-4 ml-5">
+                      <span className={`absolute -left-[7px] mt-1.5 h-3 w-3 rounded-full ring-4 ring-surface ${{ PAYMENT: 'bg-success', SUBSCRIPTION: 'bg-brand', FREEZE: 'bg-info', BOOKING: 'bg-[#7C5CFC]', NOTIFICATION: 'bg-warning', AUDIT: 'bg-ink-3' }[t.type as string] ?? 'bg-ink-3'}`} />
+                      <p className="text-[13.5px] font-medium">{t.title}</p>
+                      {t.detail && <p className="text-[12.5px] text-ink-2">{t.detail}</p>}
+                      <p className="text-[11.5px] text-ink-3">{fmtDateTime(t.at)}</p>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </CardBody>
+          </Card>
         </TabsContent>
       </Tabs>
 

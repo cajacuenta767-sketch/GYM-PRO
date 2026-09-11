@@ -11,7 +11,8 @@ import { Avatar, Button, Dropdown, DropdownContent, DropdownItem, DropdownLabel,
 import { NOTICE_TYPE } from '@/lib/labels';
 import { fmtRelative } from '@/lib/format';
 import { CommandPalette } from './command-palette';
-import { NotificationsList, useUnreadCount } from '@/features/notifications/notifications-list';
+import { NotificationsList } from '@/features/notifications/notifications-list';
+import { useUnreadCount } from '@/features/notifications/hooks';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui';
 
 export function Topbar() {

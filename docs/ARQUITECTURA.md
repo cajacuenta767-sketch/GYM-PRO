@@ -33,18 +33,20 @@ Dos aplicaciones desacopladas dentro de un monorepo. La web nunca accede a la ba
 3. `RolesGuard`: `ADMIN` todo; `MEMBER` solo rutas `@PortalAccess()`; `@Roles(...)` restringe por tipo de cuenta.
 4. `PermissionsGuard`: cada controlador declara `@ModuleKey('members')`; el guard deriva la acción del método HTTP (`GET → read`, `POST/PATCH → write`, `DELETE → delete`) y la compara con los permisos del rol del usuario (`members.write`). Sin rol asignado aplica un mapa por defecto.
 
-`AuditInterceptor` registra en `AuditLog` toda operación de escritura (usuario, módulo, entidad, detalle).
+`AuditInterceptor` registra en `AuditLog` toda operación de escritura (usuario, módulo, entidad, detalle). `@SkipPermissions()` exime rutas personales (p. ej. `GET /staff/me/agenda`) de la comprobación por módulo.
 
 **Integraciones desacopladas**
 
 - Pagos: interfaz `PaymentProvider` con `StripePaymentProvider` (Checkout + webhook firmado) y `MockPaymentProvider` (demostración). `PaymentsService.confirmCheckout` crea la suscripción y activa al miembro en una transacción.
 - Correo: `MailService` envía por SMTP (variables de entorno o ajustes) o guarda una vista previa en `NotificationLog`. Plantillas en `notifications/templates.ts`.
-- Tareas programadas: `NotificationsService.runDaily` (`@Cron` 08:00) avisa vencimientos, cumpleaños y stock bajo; también se puede lanzar desde el panel.
+- Tareas programadas: `NotificationsService.runDaily` (`@Cron` 08:00) vence membresías y suscripciones caducadas, limpia congelaciones terminadas, avisa vencimientos próximos, cumpleaños y stock bajo; también se puede lanzar desde el panel.
+- PDF: `payments/invoice.pdf.ts` (factura A4), `members/member-card.pdf.ts` (carnet con QR generado con `qrcode`) y `products.service.receiptPdf` (ticket 80 mm), todos con `pdfkit` sin dependencias nativas.
 - Archivos: `POST /uploads` con multer guarda imágenes en `apps/api/uploads` y se sirven como estáticos.
 
 **Reglas de negocio destacadas**
 
-- *Check-in* (`attendance.service.ts`): resuelve al miembro por QR, código o id; valida estado y vigencia; registra en `AccessLog`; la segunda lectura del día se convierte en salida.
+- *Check-in* (`attendance.service.ts`): resuelve al miembro por QR, código o id; valida estado, vigencia y congelación; registra en `AccessLog`; la segunda lectura del día se convierte en salida; si hay una reserva confirmada cercana en el tiempo, la marca como asistida; expone el aforo (`maxCapacity`).
+- *Pagos en línea* (`payments.service.ts`): la confirmación al volver de la pasarela valida la propiedad del pago (un miembro solo confirma los suyos) y consulta al proveedor (`verifyPayment`) antes de activar la suscripción; con Stripe el webhook firmado es la fuente definitiva.
 - *Suscripciones* (`subscriptions.service.ts`): transacción que expira la suscripción activa anterior, calcula la fecha de fin según el plan, actualiza al miembro y opcionalmente genera la factura.
 - *Ventas* (`products.service.ts`): transacción que valida stock, aplica impuesto configurado y descuenta inventario.
 - *Reservas* (`bookings.service.ts`): si la clase está llena y se pide `waitlist`, la reserva queda `WAITLISTED`; al cancelar una confirmada se promueve a la primera en espera y se notifica.

@@ -16,7 +16,7 @@ export class AuthService {
   async login(dto: LoginDto, userAgent?: string) {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email.toLowerCase() },
-      include: { accessRole: true, member: { select: { id: true, code: true, firstName: true, lastName: true, photoUrl: true } } },
+      include: { accessRole: true, member: { select: { id: true, code: true, firstName: true, lastName: true, photoUrl: true } }, staff: { select: { id: true, code: true, role: true } } },
     });
     if (!user || !user.isActive) throw new UnauthorizedException('Credenciales incorrectas');
 

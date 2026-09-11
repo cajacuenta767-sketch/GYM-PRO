@@ -25,6 +25,16 @@ export class StripePaymentProvider implements PaymentProvider {
     return { url: session.url!, providerRef: session.id, provider: this.name };
   }
 
+  async verifyPayment(providerRef: string) {
+    try {
+      const session = await this.stripe.checkout.sessions.retrieve(providerRef);
+      return session.payment_status === 'paid';
+    } catch (e: any) {
+      this.logger.warn(`No se pudo verificar la sesión ${providerRef}: ${e.message}`);
+      return false;
+    }
+  }
+
   async parseWebhook(rawBody: Buffer, signature?: string) {
     const secret = process.env.STRIPE_WEBHOOK_SECRET;
     let event: Stripe.Event;

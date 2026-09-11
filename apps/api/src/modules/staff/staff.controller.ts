@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { ModuleKey, Roles } from '../../common/decorators';
+import { CurrentUser, ModuleKey, Roles, SkipPermissions } from '../../common/decorators';
 import { CreateStaffDto, QueryStaffDto, UpdateStaffDto } from './dto/staff.dto';
 import { StaffService } from './staff.service';
 
@@ -11,6 +11,7 @@ import { StaffService } from './staff.service';
 export class StaffController {
   constructor(private readonly service: StaffService) {}
 
+  @Get('me/agenda') @SkipPermissions() agenda(@CurrentUser('staffId') staffId: string | null) { return this.service.agenda(staffId); }
   @Get() findAll(@Query() query: QueryStaffDto) { return this.service.findAll(query); }
   @Get(':id') findOne(@Param('id') id: string) { return this.service.findOne(id); }
   @Post() @Roles('ADMIN') create(@Body() dto: CreateStaffDto) { return this.service.create(dto); }

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { paginate } from '../../common/utils';
 import { CreateStaffDto, QueryStaffDto, UpdateStaffDto } from './dto/staff.dto';
+import { NotFoundException } from '@nestjs/common';
 
 const include = { branch: { select: { id: true, name: true } }, _count: { select: { members: true, classes: true, activities: true } } };
 
@@ -52,6 +53,30 @@ export class StaffService {
 
   remove(id: string) {
     return this.prisma.staff.delete({ where: { id }, select: { id: true } });
+  }
+
+  /** Agenda del integrante autenticado: clases de hoy, reservas, miembros a cargo y rutinas. */
+  async agenda(staffId?: string | null) {
+    if (!staffId) throw new NotFoundException('Tu cuenta no está vinculada a un integrante del equipo');
+    const staff = await this.prisma.staff.findUniqueOrThrow({ where: { id: staffId }, include: { branch: { select: { name: true } } } });
+    const now = new Date();
+    const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const dayEnd = new Date(dayStart.getTime() + 86_400_000 - 1);
+    const [classes, todayBookings, members, routines] = await Promise.all([
+      this.prisma.gymClass.findMany({ where: { trainerId: staffId, isActive: true }, include: { schedules: true, _count: { select: { members: true } } } }),
+      this.prisma.booking.findMany({ where: { class: { trainerId: staffId }, date: { gte: dayStart, lte: dayEnd }, status: { in: ['CONFIRMED', 'ATTENDED', 'WAITLISTED'] } }, include: { member: { select: { id: true, firstName: true, lastName: true, photoUrl: true, code: true } }, class: { select: { id: true, name: true, color: true } } }, orderBy: { date: 'asc' } }),
+      this.prisma.member.findMany({ where: { trainerId: staffId }, include: { plan: { select: { name: true, color: true } }, attendance: { orderBy: { checkIn: 'desc' }, take: 1 }, routines: { select: { id: true }, take: 1 } }, orderBy: { firstName: 'asc' } }),
+      this.prisma.routine.count({ where: { trainerId: staffId, isTemplate: false } }),
+    ]);
+    const today = now.getDay();
+    const todayClasses = classes.flatMap((c) => c.schedules.filter((s) => s.dayOfWeek === today).map((s) => ({ classId: c.id, name: c.name, color: c.color, location: c.location, capacity: c.capacity, startTime: s.startTime, endTime: s.endTime, enrolled: c._count.members, bookings: todayBookings.filter((b) => b.classId === c.id) }))).sort((a, b) => a.startTime.localeCompare(b.startTime));
+    const week = [0, 1, 2, 3, 4, 5, 6].map((d) => ({ dayOfWeek: d, slots: classes.flatMap((c) => c.schedules.filter((s) => s.dayOfWeek === d).map((s) => ({ name: c.name, color: c.color, startTime: s.startTime, endTime: s.endTime }))).sort((a, b) => a.startTime.localeCompare(b.startTime)) }));
+    return {
+      staff: { id: staff.id, name: `${staff.firstName} ${staff.lastName}`, role: staff.role, specialty: staff.specialty, branch: staff.branch?.name ?? null },
+      todayClasses, week,
+      members: members.map((m) => ({ id: m.id, code: m.code, name: `${m.firstName} ${m.lastName}`, photoUrl: m.photoUrl, status: m.status, plan: m.plan, expiresAt: m.expiresAt, lastVisit: m.attendance[0]?.checkIn ?? null, hasRoutine: m.routines.length > 0 })),
+      stats: { classes: classes.length, todayBookings: todayBookings.length, members: members.length, routines, inactiveMembers: members.filter((m) => !m.attendance[0] || m.attendance[0].checkIn < new Date(now.getTime() - 14 * 86_400_000)).length },
+    };
   }
 
   private async nextCode() {

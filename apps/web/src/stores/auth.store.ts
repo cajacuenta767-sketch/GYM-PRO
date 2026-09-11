@@ -10,6 +10,7 @@ export interface AuthUser {
   avatarUrl?: string | null;
   permissions: string[];
   member?: { id: string; code: string; firstName: string; lastName: string; photoUrl?: string | null } | null;
+  staff?: { id: string; code: string; role: string } | null;
 }
 
 interface AuthState {

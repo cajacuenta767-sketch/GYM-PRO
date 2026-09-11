@@ -13,6 +13,8 @@ export interface CheckoutResult { url: string; providerRef: string; provider: 'S
 export interface PaymentProvider {
   readonly name: 'STRIPE' | 'MOCK';
   createCheckout(input: CheckoutInput): Promise<CheckoutResult>;
+  /** Consulta a la pasarela si la sesión ya está pagada (usado al volver del checkout). */
+  verifyPayment(providerRef: string): Promise<boolean>;
   /** Devuelve el providerRef confirmado a partir del webhook (o null si el evento no aplica). */
   parseWebhook(rawBody: Buffer, signature?: string): Promise<{ providerRef: string; status: 'PAID' | 'FAILED' } | null>;
 }

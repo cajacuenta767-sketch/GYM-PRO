@@ -153,13 +153,13 @@ async function main() {
   const classesData = [
     { name: 'Clase de Yoga', trainer: 1, location: 'Sala 2 · Mente y cuerpo', capacity: 18, fee: 5, color: '#2DD4BF', schedules: [[1, '08:00', '10:00'], [3, '08:00', '10:00'], [5, '08:00', '10:00']] },
     { name: 'Clase de Aeróbicos', trainer: 3, location: 'Sala principal', capacity: 25, fee: 5, color: '#FF7A59', schedules: [[2, '18:00', '20:00'], [4, '18:00', '20:00']] },
-    { name: 'Clase de HIIT', trainer: 2, location: 'Zona funcional', capacity: 16, fee: 5, color: '#EF4444', schedules: [[1, '18:30', '19:45'], [3, '18:30', '19:45'], [5, '18:30', '19:45']] },
+    { name: 'Clase de HIIT', trainer: 0, location: 'Zona funcional', capacity: 16, fee: 5, color: '#EF4444', schedules: [[1, '18:30', '19:45'], [3, '18:30', '19:45'], [5, '18:30', '19:45']] },
     { name: 'Cardio Class', trainer: 4, location: 'Zona cardio', capacity: 20, fee: 5, color: '#F5B700', schedules: [[5, '15:30', '16:30'], [6, '15:30', '16:30']] },
     { name: 'Pilates', trainer: 1, location: 'Sala 2 · Mente y cuerpo', capacity: 14, fee: 5, color: '#7C5CFC', schedules: [[2, '12:00', '13:15'], [4, '12:00', '13:15']] },
     { name: 'Zumba Class', trainer: 3, location: 'Sala principal', capacity: 30, fee: 5, color: '#EC4899', schedules: [[6, '20:30', '22:30'], [2, '20:30', '21:30']] },
     { name: 'Power Yoga Class', trainer: 1, location: 'Sala 2 · Mente y cuerpo', capacity: 16, fee: 6, color: '#22B8CF', schedules: [[1, '09:15', '11:45'], [3, '09:15', '11:45'], [4, '09:15', '11:45'], [5, '09:15', '11:45'], [6, '09:15', '11:45']] },
     { name: 'Spinning', trainer: 4, location: 'Sala de ciclismo', capacity: 22, fee: 5, color: '#0EA5E9', schedules: [[1, '06:00', '07:00'], [2, '06:00', '07:00'], [3, '06:00', '07:00'], [4, '06:00', '07:00'], [5, '06:00', '07:00']] },
-    { name: 'CrossFit WOD', trainer: 2, location: 'Box CrossFit', capacity: 12, fee: 8, color: '#B8E63C', schedules: [[1, '07:00', '08:00'], [2, '19:00', '20:00'], [4, '19:00', '20:00'], [6, '10:00', '11:00']] },
+    { name: 'CrossFit WOD', trainer: 0, location: 'Box CrossFit', capacity: 12, fee: 8, color: '#B8E63C', schedules: [[1, '07:00', '08:00'], [2, '19:00', '20:00'], [4, '19:00', '20:00'], [6, '10:00', '11:00']] },
   ];
   const classes: any[] = [];
   for (const c of classesData) {

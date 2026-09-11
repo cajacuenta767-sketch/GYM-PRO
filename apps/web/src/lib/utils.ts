@@ -19,3 +19,11 @@ export const hashHue = (s: string) => {
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
   return h;
 };
+
+/** Enlace de WhatsApp para un teléfono (limpia el formato) con mensaje opcional. */
+export const waLink = (phone?: string | null, text?: string) => {
+  if (!phone) return null;
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length < 8) return null;
+  return `https://wa.me/${digits}${text ? `?text=${encodeURIComponent(text)}` : ''}`;
+};

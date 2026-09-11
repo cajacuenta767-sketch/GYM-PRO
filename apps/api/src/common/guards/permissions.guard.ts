@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
-import { ACTION_KEY, MODULE_KEY } from '../decorators/module-key.decorator';
+import { ACTION_KEY, MODULE_KEY, SKIP_PERMISSIONS_KEY } from '../decorators/module-key.decorator';
 import { PORTAL_KEY } from '../decorators/portal.decorator';
 
 const METHOD_ACTION: Record<string, 'read' | 'write' | 'delete'> = { GET: 'read', HEAD: 'read', OPTIONS: 'read', POST: 'write', PATCH: 'write', PUT: 'write', DELETE: 'delete' };
@@ -24,6 +24,7 @@ export class PermissionsGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const targets = [context.getHandler(), context.getClass()];
     if (this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, targets)) return true;
+    if (this.reflector.getAllAndOverride<boolean>(SKIP_PERMISSIONS_KEY, targets)) return true;
     const moduleKey = this.reflector.getAllAndOverride<string>(MODULE_KEY, targets);
     if (!moduleKey) return true;
 

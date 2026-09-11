@@ -46,7 +46,8 @@ Documentación interactiva de la API: <http://localhost:4000/api/docs>. Página 
 - **Notificaciones**: correo (SMTP real o vista previa en el panel) e in-app; tarea diaria de vencimientos, cumpleaños y stock bajo; confirmación de reservas y pagos.
 - **Rutinas**: plantillas reutilizables y rutinas por miembro con días, ejercicios, series, repeticiones, descanso y carga.
 - **Operación**: congelación de membresías, multi-sede, importación de miembros desde CSV/Excel, exportación, acciones en lote, subida de imágenes, asistente de configuración inicial.
-- **Seguridad**: JWT con refresh tokens rotativos, límite de intentos de inicio de sesión, permisos finos por módulo y acción, auditoría automática de cambios.
+- **Seguridad**: JWT con refresh tokens rotativos, límite de intentos de inicio de sesión, permisos finos por módulo y acción, auditoría automática de cambios, verificación del cobro con la pasarela antes de activar una suscripción.
+- **Operación diaria**: agenda personal del entrenador (clases de hoy, reservas, miembros a cargo), caja del día por método de pago, carnet del miembro en PDF con QR, ticket de venta en PDF, línea de tiempo por miembro, aforo máximo en tiempo real, enlaces de WhatsApp, copia de seguridad en JSON y vencimiento automático de membresías cada día.
 
 ## Estructura del repositorio
 
@@ -147,8 +148,8 @@ Todas las rutas cuelgan de `/api/v1` y, salvo `POST /auth/login`, requieren `Aut
 | Autenticación | `POST /auth/login` · `POST /auth/refresh` · `POST /auth/logout` · `GET /auth/me` · `PATCH /auth/password` |
 | Tablero | `GET /dashboard/overview` · `GET /dashboard/calendar` |
 | Membresías | `GET/POST /memberships` · `GET/PATCH/DELETE /memberships/:id` |
-| Miembros | `GET/POST /members` · `GET /members/stats` · `GET /members/qr/:token` · `/members/:id/measurements` · `POST /members/import` · `GET /members/export` · `POST /members/bulk` · `POST /members/:id/portal-account` |
-| Equipo | `GET/POST /staff` · `GET/PATCH/DELETE /staff/:id` |
+| Miembros | `GET/POST /members` · `GET /members/stats` · `GET /members/qr/:token` · `/members/:id/measurements` · `GET /members/:id/card.pdf` · `GET /members/:id/timeline` · `POST /members/import` · `GET /members/export` · `POST /members/bulk` · `POST /members/:id/portal-account` |
+| Equipo | `GET/POST /staff` · `GET /staff/me/agenda` (agenda personal) |
 | Grupos | `/groups` · `POST /groups/:id/members` · `DELETE /groups/:id/members/:memberId` |
 | Clases | `/classes` · `GET /classes/weekly` |
 | Reservas | `/bookings` · `GET /bookings/stats` · `POST /bookings/:id/cancel` · `GET /bookings/:id/waitlist-position` |
@@ -156,7 +157,7 @@ Todas las rutas cuelgan de `/api/v1` y, salvo `POST /auth/login`, requieren `Aut
 | Nutrición | `/nutrition` · `GET /nutrition/member/:id/weekly` |
 | Actividades | `/activities` · `GET /activities/categories` |
 | Ejercicios | `/exercises` · `/exercises/categories` |
-| Tienda | `/store/products` · `/store/categories` · `/store/sales` · `GET /store/stats` |
+| Tienda | `/store/products` · `/store/categories` · `/store/sales` · `GET /store/sales/:id/receipt.pdf` · `GET /store/stats` |
 | Eventos | `/events` · `GET /events/upcoming` · `POST /events/:id/rsvp` |
 | Asistencia | `POST /attendance/check-in` · `GET /attendance/today` · `GET /attendance/stats` · `/attendance` |
 | Pagos | `/payments` · `GET /payments/stats` · `POST /payments/checkout` · `POST /payments/checkout/confirm` · `POST /payments/webhooks/stripe` · `GET /payments/:id/invoice.pdf` |
@@ -164,13 +165,13 @@ Todas las rutas cuelgan de `/api/v1` y, salvo `POST /auth/login`, requieren `Aut
 | Mensajes | `/messages` · `GET /messages/unread-count` · `GET /messages/contacts` |
 | Boletines | `/newsletters` · `POST /newsletters/:id/send` |
 | Avisos | `/notices` · `GET /notices/active` |
-| Reportes | `GET /reports/summary` · `/revenue` · `/members` · `/attendance` · `/classes` · `/store` |
+| Reportes | `GET /reports/summary` · `/revenue` · `/members` · `/attendance` · `/classes` · `/store` · `/cash?date=` |
 | Suscripciones | `/subscriptions` · `GET /subscriptions/stats` · `POST /subscriptions/:id/freeze` · `POST /subscriptions/:id/unfreeze` |
 | Sedes | `/branches` |
 | Archivos | `POST /uploads` (imágenes, servidas en `/uploads/*`) |
 | Portal del miembro | `GET /portal/home` · `/portal/bookings` · `/portal/routine` · `/portal/nutrition` · `/portal/measurements` · `/portal/payments` · `/portal/plans` · `POST /portal/checkout` · `/portal/events` · `PATCH /portal/profile` |
 | Público | `GET /public/info` (sin autenticación) |
-| Configuración | `GET /settings` · `PUT /settings` |
+| Configuración | `GET /settings` · `PUT /settings` · `GET /settings/backup` |
 | Control de acceso | `/access/roles` · `GET /access/permissions` · `GET /access/logs` · `GET /access/audit` |
 
 ## Licencia

@@ -10,3 +10,7 @@ export const ModuleKey = (key: string) => SetMetadata(MODULE_KEY, key);
 /** Sobrescribe la acción requerida en una ruta concreta (p. ej. un POST que solo consulta). */
 export const ACTION_KEY = 'permissionAction';
 export const Action = (action: 'read' | 'write' | 'delete') => SetMetadata(ACTION_KEY, action);
+
+/** Omite la comprobación de permisos por módulo en una ruta (p. ej. datos personales del propio usuario). */
+export const SKIP_PERMISSIONS_KEY = 'skipPermissions';
+export const SkipPermissions = () => SetMetadata(SKIP_PERMISSIONS_KEY, true);

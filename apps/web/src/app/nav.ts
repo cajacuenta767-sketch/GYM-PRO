@@ -1,10 +1,10 @@
 import {
-  Activity, Apple, Bell, BookOpen, ClipboardList, CalendarDays, CalendarRange, ClipboardCheck, CreditCard, Dumbbell, History,
+  Activity, Apple, Bell, BookOpen, CalendarCheck, ClipboardList, CalendarDays, CalendarRange, ClipboardCheck, CreditCard, Dumbbell, History,
   KeyRound, LayoutDashboard, Mail, Megaphone, Newspaper, PieChart, Settings, ShoppingBag, Sparkles, Ticket, UserCog, Users, UsersRound, Wallet,
   type LucideIcon,
 } from 'lucide-react';
 
-export interface NavItem { label: string; to: string; icon: LucideIcon; children?: { label: string; to: string }[]; permission?: string; badge?: 'messages' }
+export interface NavItem { label: string; to: string; icon: LucideIcon; children?: { label: string; to: string }[]; permission?: string; badge?: 'messages'; requiresStaff?: boolean }
 export interface NavSection { title: string; items: NavItem[] }
 
 export const NAV: NavSection[] = [
@@ -13,6 +13,7 @@ export const NAV: NavSection[] = [
     items: [
       { label: 'Tablero', to: '/', icon: LayoutDashboard },
       { label: 'Asistencia', to: '/asistencia', icon: ClipboardCheck, permission: 'attendance.read' },
+      { label: 'Mi agenda', to: '/mi-agenda', icon: CalendarCheck, requiresStaff: true },
     ],
   },
   {

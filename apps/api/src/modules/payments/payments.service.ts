@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { addDays, endOfDay, paginate, sequential, startOfDay, startOfMonth } from '../../common/utils';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -88,13 +88,17 @@ export class PaymentsService {
   }
 
   /** Confirma un pago en línea: crea la suscripción y activa al miembro. */
-  async confirmCheckout(providerRef: string, source: 'WEBHOOK' | 'RETURN' = 'RETURN') {
+  async confirmCheckout(providerRef: string, source: 'WEBHOOK' | 'RETURN' = 'RETURN', actor?: { role: string; memberId?: string | null }) {
     const payment = await this.prisma.payment.findUnique({ where: { providerRef }, include: { member: true } });
     if (!payment) throw new NotFoundException('Pago no encontrado');
+    // Un miembro solo puede confirmar sus propios pagos (se valida ANTES de cualquier cambio)
+    if (actor?.role === 'MEMBER' && payment.memberId !== actor.memberId) throw new ForbiddenException('Este pago no pertenece a tu cuenta');
     if (payment.status === 'PAID') return { alreadyPaid: true, payment };
-    if (payment.provider === 'STRIPE' && source === 'RETURN' && process.env.STRIPE_WEBHOOK_SECRET) {
-      // Con webhook configurado, la confirmación llega por Stripe; aquí solo se consulta el estado.
-      return { pending: true, payment };
+    if (source === 'RETURN') {
+      // Al volver de la pasarela se verifica con el proveedor que el cobro exista de verdad
+      const provider = payment.provider === 'STRIPE' ? this.stripe : this.mock;
+      const paid = await provider.verifyPayment(providerRef);
+      if (!paid) return { pending: true, payment };
     }
     if (!payment.planId) throw new BadRequestException('El pago no tiene un plan asociado');
     const plan = await this.prisma.membershipPlan.findUniqueOrThrow({ where: { id: payment.planId } });

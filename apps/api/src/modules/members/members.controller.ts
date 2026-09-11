@@ -1,4 +1,5 @@
-import { BadRequestException, Body, Controller, Delete, Get, Header, Param, Patch, Post, Query, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Header, Param, Patch, Post, Query, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
+import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { IsString, MinLength } from 'class-validator';
 import { ModuleKey } from '../../common/decorators';
@@ -44,6 +45,15 @@ export class MembersController {
   @Post() create(@Body() dto: CreateMemberDto) { return this.service.create(dto); }
   @Patch(':id') update(@Param('id') id: string, @Body() dto: UpdateMemberDto) { return this.service.update(id, dto); }
   @Delete(':id') remove(@Param('id') id: string) { return this.service.remove(id); }
+
+  @Get(':id/card.pdf') @ApiOperation({ summary: 'Carnet del miembro en PDF con QR' })
+  async card(@Param('id') id: string, @Res() res: Response) {
+    const { buffer, filename } = await this.service.cardPdf(id);
+    res.setHeader('Content-Type', 'application/pdf'); res.setHeader('Content-Disposition', `inline; filename="${filename}"`); res.send(buffer);
+  }
+
+  @Get(':id/timeline') @ApiOperation({ summary: 'Línea de tiempo del miembro' })
+  timeline(@Param('id') id: string) { return this.service.timeline(id); }
 
   @Get(':id/measurements') @ApiQuery({ name: 'type', required: false })
   measurements(@Param('id') id: string, @Query('type') type?: string) { return this.service.listMeasurements(id, type); }

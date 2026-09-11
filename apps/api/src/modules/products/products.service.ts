@@ -3,6 +3,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { PaginationDto } from '../../common/dto';
 import { paginate, sequential, startOfMonth } from '../../common/utils';
 import { CreateProductCategoryDto, CreateProductDto, CreateSaleDto, QueryProductsDto, UpdateProductDto } from './dto/product.dto';
+import PDFDocument from 'pdfkit';
 
 const productInclude = { category: { select: { id: true, name: true } } };
 const saleInclude = {
@@ -102,6 +103,31 @@ export class ProductsService {
       }
       return sale;
     });
+  }
+
+  /** Ticket de venta (80 mm) en PDF. */
+  async receiptPdf(id: string): Promise<{ buffer: Buffer; filename: string }> {
+    const sale = await this.findSale(id);
+    const settings = Object.fromEntries((await this.prisma.setting.findMany({ where: { key: { in: ['gymName', 'address', 'phone', 'currencySymbol'] } } })).map((s) => [s.key, s.value]));
+    const sym = settings.currencySymbol ?? '$';
+    const money = (n: number) => `${sym}${n.toFixed(2)}`;
+    const methods: Record<string, string> = { CASH: 'Efectivo', CARD: 'Tarjeta', TRANSFER: 'Transferencia' };
+    const W = 226; const H = 260 + sale.items.length * 16;
+    const buffer = await new Promise<Buffer>((resolve, reject) => {
+      const doc = new PDFDocument({ size: [W, H], margin: 14 });
+      const chunks: Buffer[] = []; doc.on('data', (c) => chunks.push(c)); doc.on('end', () => resolve(Buffer.concat(chunks))); doc.on('error', reject);
+      doc.font('Helvetica-Bold').fontSize(12).text(settings.gymName ?? 'GYM PRO', { align: 'center' });
+      doc.font('Helvetica').fontSize(7).fillColor('#555').text([settings.address, settings.phone].filter(Boolean).join(' · '), { align: 'center' });
+      doc.moveDown(0.6).fillColor('#000').fontSize(8).text(`Venta ${sale.number}`).text(sale.createdAt.toLocaleString('es-CO')).text(`Cliente: ${sale.member ? `${sale.member.firstName} ${sale.member.lastName}` : 'Público general'}`);
+      doc.moveDown(0.4); const y0 = doc.y; doc.moveTo(14, y0).lineTo(W - 14, y0).dash(2, { space: 2 }).stroke('#999').undash(); doc.moveDown(0.4);
+      for (const it of sale.items) { const y = doc.y; doc.fontSize(8).text(`${it.quantity} × ${it.product.name}`, 14, y, { width: 140 }); doc.text(money(it.total), 150, y, { width: 62, align: 'right' }); doc.moveDown(0.2); }
+      doc.moveDown(0.3); const y1 = doc.y; doc.moveTo(14, y1).lineTo(W - 14, y1).dash(2, { space: 2 }).stroke('#999').undash(); doc.moveDown(0.4);
+      const line = (l: string, v: string, bold = false) => { const y = doc.y; doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(bold ? 10 : 8).text(l, 14, y, { width: 120 }); doc.text(v, 130, y, { width: 82, align: 'right' }); doc.moveDown(0.15); };
+      line('Subtotal', money(sale.subtotal)); if (sale.discount) line('Descuento', `-${money(sale.discount)}`); if (sale.tax) line('Impuesto', money(sale.tax)); line('TOTAL', money(sale.total), true); line('Pago', methods[sale.paymentMethod] ?? sale.paymentMethod);
+      doc.moveDown(0.8).font('Helvetica').fontSize(7).fillColor('#555').text('¡Gracias por tu compra!', { align: 'center' });
+      doc.end();
+    });
+    return { buffer, filename: `ticket-${sale.number}.pdf` };
   }
 
   async salesStats() {

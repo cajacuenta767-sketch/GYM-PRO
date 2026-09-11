@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, Minus, Package, Plus, Receipt, ShoppingBag, ShoppingCart, Tag, Trash2, Wallet } from 'lucide-react';
+import { AlertTriangle, FileText, Minus, Package, Plus, Receipt, ShoppingBag, ShoppingCart, Tag, Trash2, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
-import { del, get, post } from '@/lib/api';
+import { del, download, get, post } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { fmtDateTime, fmtMoney, fmtMoneyDec } from '@/lib/format';
 import { PAYMENT_METHOD, toOptions } from '@/lib/labels';
@@ -71,7 +71,7 @@ export default function StorePage() {
             toolbar={(c) => <Select value={(c.filters.categoryId as string) ?? ''} onChange={(e) => c.setFilter('categoryId', e.target.value)} className="w-44"><option value="">Todas las categorías</option>{(cats ?? []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</Select>} />
         </TabsContent>
         <TabsContent value="ventas">
-          <DataTable controller={sales} columns={saleColumns} searchPlaceholder="Buscar por n.º o cliente…" onView={(s) => setViewSale(s)} onRowClick={(s) => setViewSale(s)} emptyIcon={<Receipt />} emptyTitle="Sin ventas" />
+          <DataTable controller={sales} columns={saleColumns} searchPlaceholder="Buscar por n.º o cliente…" onView={(s) => setViewSale(s)} onRowClick={(s) => setViewSale(s)} actions={[{ label: 'Ticket PDF', icon: <FileText />, onClick: (s) => download(`/store/sales/${s.id}/receipt.pdf`, `ticket-${s.number}.pdf`, true) }]} emptyIcon={<Receipt />} emptyTitle="Sin ventas" />
         </TabsContent>
         <TabsContent value="categorias"><Categories /></TabsContent>
       </Tabs>
@@ -83,6 +83,7 @@ export default function StorePage() {
           <div className="space-y-4 text-[13.5px]">
             <div className="rounded-xl bg-surface-2 p-3"><p className="text-ink-2">Cliente</p><p className="font-medium">{viewSale.member ? `${viewSale.member.firstName} ${viewSale.member.lastName}` : 'Público general'}</p><p className="mt-2 text-ink-2">Atendió</p><p className="font-medium">{viewSale.staff ? `${viewSale.staff.firstName} ${viewSale.staff.lastName}` : '—'}</p></div>
             <table className="w-full"><thead><tr className="text-[11.5px] uppercase tracking-wider text-ink-3"><th className="py-1 text-left">Producto</th><th className="py-1 text-right">Cant.</th><th className="py-1 text-right">Total</th></tr></thead><tbody>{viewSale.items.map((i) => <tr key={i.id} className="border-t border-line"><td className="py-2">{i.product.name}<span className="block text-[11px] text-ink-3">{fmtMoneyDec(i.unitPrice)} c/u</span></td><td className="py-2 text-right">{i.quantity}</td><td className="py-2 text-right font-medium">{fmtMoneyDec(i.total)}</td></tr>)}</tbody></table>
+            <Button variant="outline" size="sm" onClick={() => download(`/store/sales/${viewSale.id}/receipt.pdf`, `ticket-${viewSale.number}.pdf`, true)}><FileText className="h-4 w-4" />Imprimir ticket</Button>
             <div className="space-y-1 border-t border-line pt-3"><p className="flex justify-between text-ink-2"><span>Subtotal</span><span>{fmtMoneyDec(viewSale.subtotal)}</span></p>{viewSale.discount > 0 && <p className="flex justify-between text-ink-2"><span>Descuento</span><span>-{fmtMoneyDec(viewSale.discount)}</span></p>}{viewSale.tax > 0 && <p className="flex justify-between text-ink-2"><span>Impuesto</span><span>{fmtMoneyDec(viewSale.tax)}</span></p>}<p className="flex justify-between font-display text-[18px] font-bold"><span>Total</span><span>{fmtMoneyDec(viewSale.total)}</span></p><p className="text-right text-[12px] text-ink-3">{PAYMENT_METHOD[viewSale.paymentMethod]}</p></div>
           </div>
         )}
@@ -121,7 +122,7 @@ function PosDialog({ open, onOpenChange, onDone }: { open: boolean; onOpenChange
   const { data: products } = useQuery({ queryKey: ['/store/products', 'pos'], queryFn: () => get<Product[]>('/store/products', { limit: 200 }), enabled: open });
   const { data: members } = useOptions('members');
   const filtered = useMemo(() => (products ?? []).filter((p) => p.isActive && (!search || p.name.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase()))), [products, search]);
-  const lines = Object.entries(cart).map(([id, qty]) => ({ product: products?.find((p) => p.id === id)!, qty })).filter((l) => l.product);
+  const lines = Object.entries(cart).flatMap(([id, qty]) => { const product = products?.find((p) => p.id === id); return product ? [{ product, qty }] : []; });
   const subtotal = lines.reduce((a, l) => a + l.product.price * l.qty, 0);
   const total = Math.max(0, subtotal - discount);
 

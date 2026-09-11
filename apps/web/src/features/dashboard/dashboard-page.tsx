@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, ArrowRight, CalendarRange, ClipboardCheck, CreditCard, Package, Sparkles, Ticket, Users, UsersRound, Wallet } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CalendarRange, ClipboardCheck, CreditCard, MessageCircle, Package, Sparkles, Ticket, Users, UsersRound, Wallet } from 'lucide-react';
+import { waLink } from '@/lib/utils';
 import { get } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 import { fmtDate, fmtMoney, fmtRelative, daysUntil } from '@/lib/format';
@@ -101,6 +102,7 @@ export default function DashboardPage() {
                           <span className="block text-[11.5px] text-ink-3">{m.plan?.name} · {m.code}</span>
                         </Link>
                         <Badge tone={d <= 2 ? 'danger' : 'warning'}>{d <= 0 ? 'Hoy' : `${d} d`}</Badge>
+                        {waLink(m.phone) && <a href={waLink(m.phone, `Hola ${m.firstName}, tu membresía vence el ${fmtDate(m.expiresAt)}. ¿Te ayudamos a renovarla?`)!} target="_blank" rel="noreferrer" aria-label="WhatsApp" className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-[#128C7E] hover:bg-success-soft"><MessageCircle className="h-4 w-4" /></a>}
                       </li>
                     );
                   })}

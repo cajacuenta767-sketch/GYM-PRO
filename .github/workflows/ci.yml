@@ -23,6 +23,8 @@ jobs:
       - run: npm ci
       - run: npx prisma generate
         working-directory: apps/api
+      - name: Lint
+        run: npm run lint -w apps/api
       - name: Verificar tipos
         run: npx tsc --noEmit -p tsconfig.build.json
         working-directory: apps/api
@@ -39,6 +41,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
+      - name: Lint
+        run: npm run lint -w apps/web
       - name: Verificar tipos
         run: npm run typecheck -w apps/web
       - name: Compilar (incluye PWA)

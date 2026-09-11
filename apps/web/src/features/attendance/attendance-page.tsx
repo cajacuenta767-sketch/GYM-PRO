@@ -93,6 +93,7 @@ export default function AttendancePage() {
                   </div>
                   <StatusBadge value={result.attendance.member.status} map={MEMBER_STATUS} />
                 </div>
+                {result.bookingAttended && <p className="mt-3 rounded-lg bg-surface/70 px-3 py-1.5 text-[12.5px] font-medium text-ink">✓ Reserva de <b>{result.bookingAttended.className}</b> marcada como asistida.</p>}
               </div>
             )}
           </CardBody>
@@ -100,7 +101,7 @@ export default function AttendancePage() {
 
         <div className="grid grid-cols-2 gap-4 content-start">
           <StatCard label="Asistencias hoy" value={today?.total ?? '…'} icon={<ClipboardCheck />} tone="brand" />
-          <StatCard label="Dentro ahora" value={today?.inside ?? '…'} icon={<Users />} tone="success" />
+          <StatCard label="Dentro ahora" value={today?.capacity ? `${today.inside} / ${today.capacity}` : today?.inside ?? '…'} hint={today?.capacity ? `${today.occupancy}% del aforo` : undefined} icon={<Users />} tone={today?.occupancy >= 90 ? 'danger' : today?.occupancy >= 70 ? 'warning' : 'success'} />
           <StatCard label="Este mes" value={stats?.month ?? '…'} icon={<ClipboardCheck />} tone="info" />
           <StatCard label="Promedio diario" value={stats?.dailyAverage ?? '…'} hint="últimos 7 días" icon={<Users />} tone="neutral" />
           <Card className="col-span-2">

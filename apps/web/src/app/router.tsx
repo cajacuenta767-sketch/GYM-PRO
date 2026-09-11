@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth.store';
 import { AppShell } from '@/components/layout/app-shell';
 import { PortalShell } from '@/features/portal/portal-shell';
 import { Skeleton } from '@/components/ui';
+import { ErrorPage } from '@/components/error-page';
 
 const LoginPage = lazy(() => import('@/features/auth/login-page'));
 const PublicPage = lazy(() => import('@/features/public/public-page'));
@@ -12,6 +13,7 @@ const MembersPage = lazy(() => import('@/features/members/members-page'));
 const MemberDetailPage = lazy(() => import('@/features/members/member-detail-page'));
 const StaffPage = lazy(() => import('@/features/staff/staff-page'));
 const AccountantsPage = lazy(() => import('@/features/staff/accountants-page'));
+const AgendaPage = lazy(() => import('@/features/staff/agenda-page'));
 const MembershipsPage = lazy(() => import('@/features/memberships/memberships-page'));
 const GroupsPage = lazy(() => import('@/features/groups/groups-page'));
 const SubscriptionsPage = lazy(() => import('@/features/subscriptions/subscriptions-page'));
@@ -75,10 +77,11 @@ const Fallback = () => (
 const S = ({ children }: { children: React.ReactNode }) => <Suspense fallback={<Fallback />}>{children}</Suspense>;
 
 const router = createBrowserRouter([
-  { path: '/publico', element: <S><PublicPage /></S> },
-  { element: <PublicOnly />, children: [{ path: '/login', element: <S><LoginPage /></S> }] },
+  { path: '/publico', element: <S><PublicPage /></S>, errorElement: <ErrorPage /> },
+  { element: <PublicOnly />, errorElement: <ErrorPage />, children: [{ path: '/login', element: <S><LoginPage /></S> }] },
   {
     element: <StaffOnly />,
+    errorElement: <ErrorPage />,
     children: [
       {
         element: <AppShell />,
@@ -87,6 +90,7 @@ const router = createBrowserRouter([
           { path: '/miembros', element: <S><MembersPage /></S> },
           { path: '/miembros/:id', element: <S><MemberDetailPage /></S> },
           { path: '/equipo', element: <S><StaffPage /></S> },
+          { path: '/mi-agenda', element: <S><AgendaPage /></S> },
           { path: '/contadores', element: <S><AccountantsPage /></S> },
           { path: '/membresias', element: <S><MembershipsPage /></S> },
           { path: '/grupos', element: <S><GroupsPage /></S> },
@@ -118,6 +122,7 @@ const router = createBrowserRouter([
   },
   {
     element: <MemberOnly />,
+    errorElement: <ErrorPage />,
     children: [
       {
         element: <PortalShell />,

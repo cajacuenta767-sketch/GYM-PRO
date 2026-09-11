@@ -14,7 +14,7 @@ export class DashboardService {
     const [
       members, activeMembers, newMembersMonth, newMembersPrev, staff, groups, classes,
       revenueMonth, revenuePrev, attendanceToday, insideNow, expiringSoon, pendingPayments,
-      bookingsToday, plans, groupList, notices, upcomingEvents, recentPayments, lowStock, unreadMessages,
+      bookingsToday, plans, groupList, notices, upcomingEvents, recentPayments, lowStock,
     ] = await Promise.all([
       this.prisma.member.count(),
       this.prisma.member.count({ where: { status: 'ACTIVE' } }),
@@ -29,7 +29,7 @@ export class DashboardService {
       this.prisma.attendance.count({ where: { checkIn: { gte: startOfDay(now) }, checkOut: null } }),
       this.prisma.member.findMany({
         where: { status: 'ACTIVE', expiresAt: { gte: startOfDay(now), lte: addDays(now, 7) } },
-        select: { id: true, code: true, firstName: true, lastName: true, photoUrl: true, expiresAt: true, plan: { select: { name: true, color: true } } },
+        select: { id: true, code: true, firstName: true, lastName: true, photoUrl: true, phone: true, expiresAt: true, plan: { select: { name: true, color: true } } },
         orderBy: { expiresAt: 'asc' }, take: 6,
       }),
       this.prisma.payment.aggregate({ _sum: { amount: true }, _count: true, where: { status: 'PENDING' } }),
@@ -40,7 +40,6 @@ export class DashboardService {
       this.prisma.event.findMany({ where: { startsAt: { gte: startOfDay(now) } }, orderBy: { startsAt: 'asc' }, take: 4 }),
       this.prisma.payment.findMany({ where: { status: 'PAID' }, include: { member: { select: { firstName: true, lastName: true, photoUrl: true, code: true } } }, orderBy: { paidAt: 'desc' }, take: 6 }),
       this.prisma.product.findMany({ where: { isActive: true }, select: { id: true, name: true, stock: true, minStock: true } }),
-      Promise.resolve(0),
     ]);
 
     const rev = revenueMonth._sum.amount ?? 0;
@@ -65,7 +64,6 @@ export class DashboardService {
         attendanceToday: { value: attendanceToday, inside: insideNow },
         bookingsToday: { value: bookingsToday },
         pending: { value: pendingPayments._sum.amount ?? 0, count: pendingPayments._count },
-        unreadMessages,
       },
       plans: plans.map((p) => ({ id: p.id, name: p.name, color: p.color, price: p.price, durationDays: p.durationDays, members: p._count.members })),
       groups: groupList.map((g) => ({ id: g.id, name: g.name, color: g.color, imageUrl: g.imageUrl, members: g._count.members })),

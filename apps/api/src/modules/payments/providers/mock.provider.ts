@@ -10,5 +10,6 @@ export class MockPaymentProvider implements PaymentProvider {
     const web = process.env.WEB_URL ?? 'http://localhost:5173';
     return { url: `${web}/portal/pago/${providerRef}`, providerRef, provider: this.name };
   }
+  async verifyPayment() { return true; }
   async parseWebhook() { return null; }
 }

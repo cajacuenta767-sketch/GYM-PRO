@@ -21,6 +21,7 @@ Requisitos: Node.js 20 o superior.
 
 ```bash
 npm install                 # instala api y web
+cp apps/api/.env.example apps/api/.env   # configuración local (SQLite, no requiere cambios)
 npm run db:migrate -w apps/api -- --name init   # crea la base de datos (o: npm run db:push -w apps/api)
 npm run db:seed             # datos de demostración
 npm run dev                 # API en :4000 y web en :5173
